@@ -1,4 +1,5 @@
-﻿@model Quote
+﻿@using TechnoSurfaces.Models
+@model Quote
 @{
     var cust = Db.GetCustomer(Model.CustomerId);
     var contact = Db.GetContact(Model.CustomerId, Model.ContactId);

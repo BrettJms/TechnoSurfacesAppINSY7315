@@ -1,7 +1,7 @@
-﻿@model TechnoSurfaces.Controllers.ReviewVm
+﻿@model TechnoSurfacesApp.Controllers.ReviewVm
 @{
     var q = Model.Quote;
-    var groups = TechnoSurfaces.Controllers.CostingVm.Order;
+    var groups = TechnoSurfacesApp.Controllers.CostingVm.Order;
 
     string GroupName(RateGroup g) => g switch
     {

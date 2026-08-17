@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TechnoSurfacesApp.Data;
-using TechnoSurfacesApp.Services;
+using TechnoSurfaces.Services;
 
 namespace TechnoSurfacesApp.Controllers;
 

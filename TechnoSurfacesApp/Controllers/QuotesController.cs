@@ -4,11 +4,10 @@ using System.Text.Json;
 using TechnoSurfacesApp.Data;
 using TechnoSurfacesApp.Helpers;
 using TechnoSurfacesApp.Models;
-using TechnoSurfacesApp.Services;
+using TechnoSurfaces.Services;
 using TechnoSurfacesApp.Controllers;
-using TechnoSurfacesApp.Helpers;
-using TechnoSurfacesApp.Models;
 using static System.Collections.Specialized.BitVector32;
+using TechnoSurfaces.Models;
 
 namespace TechnoSurfacesApp.Controllers;
 

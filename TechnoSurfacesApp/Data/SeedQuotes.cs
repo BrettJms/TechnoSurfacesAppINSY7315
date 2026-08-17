@@ -1,6 +1,6 @@
 ﻿using TechnoSurfacesApp.Models;
 using TechnoSurfacesApp.Data;
-using TechnoSurfacesApp.Models;
+using TechnoSurfaces.Models;
 
 namespace TechnoSurfacesApp.Data;
 

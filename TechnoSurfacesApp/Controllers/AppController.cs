@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using TechnoSurfacesApp.Data;
-using TechnoSurfacesApp.Services;
+using TechnoSurfaces.Services;
 
 namespace TechnoSurfacesApp.Controllers;
 

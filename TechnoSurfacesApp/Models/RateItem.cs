@@ -1,4 +1,4 @@
-﻿using TechnoSurfacesApp.Models;
+﻿using TechnoSurfaces.Models;
 
 namespace TechnoSurfacesApp.Models;
 

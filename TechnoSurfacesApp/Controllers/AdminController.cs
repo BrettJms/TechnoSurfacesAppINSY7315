@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TechnoSurfacesApp.Data;
 using TechnoSurfacesApp.Models;
-using TechnoSurfacesApp.Services;
-using TechnoSurfacesApp.Models;
+using TechnoSurfaces.Services;
 using static System.Collections.Specialized.BitVector32;
 
 namespace TechnoSurfacesApp.Controllers;
