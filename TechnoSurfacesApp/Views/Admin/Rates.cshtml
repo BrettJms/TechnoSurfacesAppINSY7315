@@ -1,0 +1,138 @@
+﻿@model TechnoSurfaces.Controllers.RatesVm
+
+<div class="page-head">
+    <div>
+        <h2>Rate card</h2>
+        <p>One central rate card, applied to every quote regardless of material</p>
+    </div>
+    <div class="page-head-actions">
+        @if (Model.CanEdit)
+        {
+            <button class="btn btn-primary" type="button">
+                <svg class="ico ico-sm"><use href="#i-plus" /></svg> Add rate item
+            </button>
+        }
+    </div>
+</div>
+
+<div class="notice notice-warn">
+    <svg class="ico"><use href="#i-alert" /></svg>
+    <div>
+        <strong>Rates shown are indicative placeholders.</strong>
+        The client confirmed every rand value in the sample spreadsheet is not real; the real
+        fabrication, labour and consumable rates are still to be confirmed. The line items, units
+        and derivation rules below are real &mdash; they come from the structure of the client's own
+        costing sheet.
+    </div>
+</div>
+
+@if (!Model.CanEdit)
+{
+    <div class="notice notice-info">
+        <svg class="ico"><use href="#i-info" /></svg>
+        <div>Rates are visible to everyone. Only the Managing Director can change them.</div>
+    </div>
+}
+
+<div class="notice notice-good">
+    <svg class="ico"><use href="#i-check-circle" /></svg>
+    <div>
+        <strong>Held once, applied everywhere.</strong>
+        The spreadsheet this replaces duplicated this rate card on twelve separate material sheets.
+        A price rise had to be typed twelve times, and nothing flagged a sheet that was missed.
+    </div>
+</div>
+
+@foreach (var (group, rows) in Model.Groups)
+{
+    <div class="card">
+        <div class="card-head">
+            <h3>@Model.GroupName(group)</h3>
+            <span class="spacer"></span>
+            <span class="badge">@rows.Count line@(rows.Count == 1 ? "" : "s")</span>
+        </div>
+        <div class="table-wrap">
+            <table class="data stack">
+                <thead>
+                    <tr>
+                        <th>Line item</th>
+                        <th>Unit</th>
+                        <th class="right">Rate</th>
+                        <th>Quantity source</th>
+                        <th>Rate rule</th>@if (Model.CanEdit) {
+                        <th></th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in rows)
+                {
+                    <tr>
+                        <td data-label="Line item">
+                            <span class="strong">@r.Name</span>
+                            @if (r.IsDerived)
+                            {
+                                <span class="badge badge-sage">Derived</span>
+                            }
+                        </td>
+                        <td data-label="Unit" class="small muted">@r.Unit</td>
+                        <td data-label="Rate" class="right strong">@Fmt.Rand(r.Rate)</td>
+                        <td data-label="Quantity source" class="small">
+                            @(r.DerivationNote ?? (r.IsDerived ? "Computed" : "Entered by the estimator"))
+                        </td>
+                        <td data-label="Rate rule">
+                            @if (r.RateRule is not null)
+                            {
+                                <span class="rate-rule">@r.RateRule</span>
+                            }
+                            else
+                            {
+                                <span class="muted small">&mdash;</span>
+                            }
+                        </td>
+                        @if (Model.CanEdit)
+                        {
+                            <td data-label="" class="right">
+                                <button class="btn btn-ghost btn-sm" type="button">
+                                    <svg class="ico ico-sm"><use href="#i-edit" /></svg>
+                                </button>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+}
+
+<div class="card">
+    <div class="card-head"><h3>Rate relationships</h3></div>
+    <div class="card-body">
+        <p class="small" style="margin-top:0">
+            Some rates are never stored independently &mdash; they are calculated from another rate
+            so the two cannot drift apart:
+        </p>
+        <div class="check-row">
+            <span class="check-dot check-ok"><svg class="ico" style="width:11px;height:11px;flex-basis:11px"><use href="#i-check" /></svg></span>
+            <span class="check-body">
+                <span class="check-title">Overtime = normal rate &times; 1,5</span>
+                <span class="check-detail">Applies to both fabrication rates. Change the normal rate and overtime follows.</span>
+            </span>
+        </div>
+        <div class="check-row">
+            <span class="check-dot check-ok"><svg class="ico" style="width:11px;height:11px;flex-basis:11px"><use href="#i-check" /></svg></span>
+            <span class="check-body">
+                <span class="check-title">Installation normal rate = fabrication no-backsplash normal rate</span>
+                <span class="check-detail">Held as one number, not typed twice.</span>
+            </span>
+        </div>
+        <div class="check-row">
+            <span class="check-dot check-ok"><svg class="ico" style="width:11px;height:11px;flex-basis:11px"><use href="#i-check" /></svg></span>
+            <span class="check-body">
+                <span class="check-title">Installation overtime rate = fabrication overtime rate</span>
+                <span class="check-detail">Same reasoning &mdash; one relationship instead of a second copy.</span>
+            </span>
+        </div>
+    </div>
+</div>

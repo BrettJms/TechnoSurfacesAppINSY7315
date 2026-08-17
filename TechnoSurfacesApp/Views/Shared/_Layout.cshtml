@@ -1,50 +1,156 @@
-﻿<!DOCTYPE html>
+﻿@{
+    var user = Session.User;
+    var isMd = Session.IsMd;
+    var page = (ViewData["Page"] as string) ?? "";
+    var crumb = ViewData["Crumb"] as string;
+    string Nav(string key) => page == key ? "nav-link active" : "nav-link";
+    string Tab(string key) => page == key ? "active" : "";
+    var pendingCount = ViewData["PendingCount"] as int? ?? 0;
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - TechnoSurfacesApp</title>
-    <script type="importmap"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] &middot; Techno Surfaces</title>
+    <link rel="icon" type="image/png" href="~/img/logo.png" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/TechnoSurfacesApp.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">TechnoSurfacesApp</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
+    <partial name="_Icons" />
+
+    <div class="app">
+
+        <div class="sidebar-scrim" onclick="document.body.classList.remove('nav-open')"></div>
+
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-logo">
+                    <img src="~/img/logo.png" alt="Techno Surfaces" />
+                </span>
+                <span class="brand-tag">Quoting System</span>
             </div>
+
+            <nav class="nav">
+                <a class="@Nav("dashboard")" asp-controller="Home" asp-action="Dashboard">
+                    <svg class="ico"><use href="#i-grid" /></svg> Dashboard
+                </a>
+
+                <div class="nav-group-label">Quoting</div>
+                <a class="@Nav("quotes")" asp-controller="Quotes" asp-action="Index">
+                    <svg class="ico"><use href="#i-file" /></svg> Quotes
+                </a>
+                <a class="@Nav("new")" asp-controller="Quotes" asp-action="Create">
+                    <svg class="ico"><use href="#i-plus" /></svg> New quote
+                </a>
+                @if (isMd)
+                {
+                    <a class="@Nav("approvals")" asp-controller="Quotes" asp-action="Approvals">
+                        <svg class="ico"><use href="#i-inbox" /></svg> Approvals
+                        @if (pendingCount > 0)
+                        {
+                            <span class="nav-count">@pendingCount</span>
+                        }
+                    </a>
+                }
+
+                <div class="nav-group-label">Data</div>
+                <a class="@Nav("customers")" asp-controller="Customers" asp-action="Index">
+                    <svg class="ico"><use href="#i-building" /></svg> Customers
+                </a>
+                <a class="@Nav("catalogue")" asp-controller="Catalogue" asp-action="Index">
+                    <svg class="ico"><use href="#i-layers" /></svg> Material catalogue
+                </a>
+
+                @if (isMd)
+                {
+                    <div class="nav-group-label">Administration</div>
+                    <a class="@Nav("rates")" asp-controller="Admin" asp-action="Rates">
+                        <svg class="ico"><use href="#i-sliders" /></svg> Rate card
+                    </a>
+                    <a class="@Nav("users")" asp-controller="Admin" asp-action="Users">
+                        <svg class="ico"><use href="#i-users" /></svg> Users
+                    </a>
+                    <a class="@Nav("terms")" asp-controller="Admin" asp-action="Terms">
+                        <svg class="ico"><use href="#i-file" /></svg> Quotation terms
+                    </a>
+                    <a class="@Nav("audit")" asp-controller="Admin" asp-action="Audit">
+                        <svg class="ico"><use href="#i-history" /></svg> Audit trail
+                    </a>
+                }
+            </nav>
+        </aside>
+
+        <div class="main">
+            <header class="topbar">
+                <button class="btn btn-ghost btn-sm d-lg-none" style="padding:6px"
+                        onclick="document.body.classList.toggle('nav-open')" aria-label="Menu">
+                    <svg class="ico"><use href="#i-menu" /></svg>
+                </button>
+
+                <div>
+                    @if (crumb is not null)
+                    {
+                        <div class="crumb">@crumb</div>
+                    }
+                    <h1>@ViewData["Title"]</h1>
+                </div>
+
+                <div class="topbar-spacer"></div>
+
+                <form asp-controller="Account" asp-action="Switch" method="post" class="no-print">
+                    <select name="userId" class="select input-sm" style="width:auto;min-width:170px"
+                            onchange="this.form.submit()" aria-label="Switch user">
+                        @foreach (var u in Db.ActiveUsers)
+                        {
+                            <option value="@u.Id" selected="@(u.Id == user.Id)">
+                                @u.FullName &mdash; @(u.Role == UserRole.ManagingDirector ? "MD" : "Estimator")
+                            </option>
+                        }
+                    </select>
+                </form>
+
+                <div class="userchip" title="@user.Email">
+                    <span class="avatar @(isMd ? "" : "sage")">@user.Initials</span>
+                    <span>
+                        <span class="userchip-name">@user.FullName</span><br />
+                        <span class="userchip-role">@user.RoleLabel</span>
+                    </span>
+                </div>
+
+                <a class="btn btn-ghost btn-sm no-print" asp-controller="Account" asp-action="Logout"
+                   title="Sign out" style="padding:7px">
+                    <svg class="ico"><use href="#i-logout" /></svg>
+                </a>
+            </header>
+
+            <main class="content">
+                @RenderBody()
+            </main>
+        </div>
+
+        <nav class="mobile-bar no-print">
+            <a class="@Tab("dashboard")" asp-controller="Home" asp-action="Dashboard">
+                <svg class="ico"><use href="#i-grid" /></svg> Home
+            </a>
+            <a class="@Tab("quotes")" asp-controller="Quotes" asp-action="Index">
+                <svg class="ico"><use href="#i-file" /></svg> Quotes
+            </a>
+            <a class="@Tab("new")" asp-controller="Quotes" asp-action="Create">
+                <svg class="ico"><use href="#i-plus" /></svg> New
+            </a>
+            <a class="@Tab("catalogue")" asp-controller="Catalogue" asp-action="Index">
+                <svg class="ico"><use href="#i-layers" /></svg> Materials
+            </a>
+            <a href="#" onclick="document.body.classList.toggle('nav-open');return false;">
+                <svg class="ico"><use href="#i-more" /></svg> More
+            </a>
         </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - TechnoSurfacesApp - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

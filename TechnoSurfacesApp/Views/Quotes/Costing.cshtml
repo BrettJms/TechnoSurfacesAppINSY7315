@@ -1,0 +1,362 @@
+﻿@model TechnoSurfaces.Controllers.CostingVm
+@{
+    var q = Model.Quote;
+    var groups = TechnoSurfaces.Controllers.CostingVm.Order;
+    var ro = Model.CanEdit ? "" : "disabled";
+}
+
+<div class="page-head">
+    <div>
+        <h2>Costing sheet</h2>
+        <p>@q.Project</p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-secondary" asp-action="Quotation" asp-route-id="@q.Id">
+            <svg class="ico ico-sm"><use href="#i-eye" /></svg> Customer quotation
+        </a>
+        <a class="btn btn-secondary" asp-action="Versions" asp-route-id="@q.Id">
+            <svg class="ico ico-sm"><use href="#i-history" /></svg> Versions
+        </a>
+        @if (Model.CanEdit)
+        {
+            @if (Session.IsMd)
+            {
+                <button class="btn btn-primary" type="button">Save &amp; approve</button>
+            }
+            else
+            {
+                <button class="btn btn-primary" type="button">Submit for approval</button>
+            }
+        }
+    </div>
+</div>
+
+<partial name="_QuoteHeader" model="q" />
+
+<div class="notice notice-warn">
+    <svg class="ico"><use href="#i-lock" /></svg>
+    <div>
+        <strong>Internal document.</strong> Cost prices, supplier discounts and markup appear on this
+        sheet only. None of them reach the customer quotation.
+    </div>
+</div>
+
+@if (!Model.CanEdit)
+{
+    <div class="notice notice-info">
+        <svg class="ico"><use href="#i-info" /></svg>
+        <div>
+            This quote is <strong>@q.StatusLabel.ToLowerInvariant()</strong> and locked for editing.
+            @if (!Session.IsMd)
+            {
+                <text>Only the Managing Director can reopen it.</text>
+            }
+        </div>
+    </div>
+}
+
+<div class="grid grid-main">
+    <div>
+        <!-- ---------- Materials ---------- -->
+        <div class="card">
+            <div class="card-head">
+                <svg class="ico" style="color:var(--ts-sage)"><use href="#i-layers" /></svg>
+                <h2>Materials</h2>
+                <span class="spacer"></span>
+                <a class="btn btn-secondary btn-sm" asp-action="Create">
+                    <svg class="ico ico-sm"><use href="#i-plus" /></svg> Add material
+                </a>
+            </div>
+            <div class="table-wrap">
+                <table class="data stack">
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Size</th>
+                            <th class="right">Sheets</th>
+                            <th class="right">Lin m</th>
+                            <th class="right">m&sup2;</th>
+                            <th class="right">R/sheet</th>
+                            <th class="right">Disc %</th>
+                            <th class="right">Line total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in q.MaterialLines)
+                        {
+                            <tr class="mat-row"
+                                data-sheetprice="@m.ResolvedPricePerSheet.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                data-len="@m.SheetLengthMm" data-wid="@m.SheetWidthMm">
+                                <td data-label="Material">
+                                    <div class="strong">@m.ColourName</div>
+                                    <div class="tiny muted">
+                                        @m.SupplierName &middot; @m.ProductLineName
+                                        @if (m.BandCode is not null)
+                                        {
+                                            <span class="badge badge-band">@m.BandCode</span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(m.SupplierCode))
+                                        {
+                                            <span class="badge badge-code">@m.SupplierCode</span>
+                                        }
+                                    </div>
+                                    <div class="tiny muted">Price resolved @Fmt.Date(m.PriceResolvedAt)</div>
+                                </td>
+                                <td data-label="Size" class="nowrap">@m.SizeLabel</td>
+                                <td data-label="Sheets" class="right">
+                                    <input class="input input-sm input-num mat-sheets" type="number" step="0.5" min="0"
+                                           value="@m.SheetsToOrder.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           style="width:82px" @ro />
+                                </td>
+                                <td data-label="Lin m" class="right mat-linm">@Fmt.Num(m.LinearMetres)</td>
+                                <td data-label="m&sup2;" class="right mat-sqm">@Fmt.Num(m.SquareMetres)</td>
+                                <td data-label="R/sheet" class="right">@Fmt.Rand(m.ResolvedPricePerSheet)</td>
+                                <td data-label="Disc %" class="right">
+                                    <input class="input input-sm input-num mat-disc" type="number" step="0.5" min="0" max="100"
+                                           value="@m.SupplierDiscountPct.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                           style="width:72px" @ro />
+                                </td>
+                                <td data-label="Line total" class="right strong mat-total">@Fmt.Rand(m.LineTotal)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="2">Material subtotal</td>
+                            <td class="right" id="tSheets"></td>
+                            <td></td>
+                            <td class="right" id="tSqm"></td>
+                            <td colspan="2"></td>
+                            <td class="right" id="tMaterial"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- ---------- Rate card ---------- -->
+        <div class="card">
+            <div class="card-head">
+                <svg class="ico" style="color:var(--ts-blue)"><use href="#i-calc" /></svg>
+                <h2>Labour, consumables and extras</h2>
+                <span class="spacer"></span>
+                <span class="badge">Rates from the central rate card</span>
+            </div>
+            <div class="table-wrap">
+                <table class="data stack">
+                    <thead>
+                        <tr>
+                            <th>Line item</th>
+                            <th>Unit</th>
+                            <th class="right">Qty</th>
+                            <th class="right">Rate</th>
+                            <th class="right">Line total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var g in groups)
+                        {
+                            var rows = q.CostingLines.Where(l => l.Group == g).ToList();
+                            if (!rows.Any()) { continue; }
+
+                            <tr class="group-row">
+                                <td colspan="5">
+                                    @rows[0].Group.ToString()
+                                    @if (g == RateGroup.BelowTheLine)
+                                    {
+                                        <span class="badge badge-warn" style="margin-left:8px;text-transform:none;letter-spacing:0">
+                                            Cost recovery &mdash; not marked up
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+
+                            @foreach (var l in rows)
+                            {
+                                <tr class="cost-row @(l.IsDerived ? "derived-row" : "")"
+                                    data-rate="@l.Rate.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    data-markedup="@(l.IsMarkedUp ? 1 : 0)"
+                                    data-derived="@(l.IsDerived ? (l.Name.StartsWith("Sandpaper") ? "sqm" : "sheets") : "")">
+                                    <td data-label="Line item">
+                                        @l.Name
+                                        @if (l.IsDerived)
+                                        {
+                                            <span class="badge badge-sage">Derived</span>
+                                            <div class="tiny muted">@l.DerivationNote</div>
+                                        }
+                                    </td>
+                                    <td data-label="Unit" class="muted small">@l.Unit</td>
+                                    <td data-label="Qty" class="right">
+                                        <input class="input input-sm input-num cost-qty" type="number" step="0.5" min="0"
+                                               value="@l.Quantity.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                               style="width:82px"
+                                        @(l.IsDerived ? "disabled" : ro) />
+                                    </td>
+                                    <td data-label="Rate" class="right">@Fmt.Rand(l.Rate)</td>
+                                    <td data-label="Line total" class="right strong cost-total">@Fmt.Rand(l.LineTotal)</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ---------- Totals ---------- -->
+    <div>
+        <div class="card totals">
+            <div class="card-head"><h3>Totals</h3></div>
+            <div class="card-body">
+                <div class="totals-row">
+                    <span class="lbl">Material</span>
+                    <span class="val" id="sMaterial"></span>
+                </div>
+                <div class="totals-row">
+                    <span class="lbl">Fabrication, installation, wood &amp; sinks</span>
+                    <span class="val" id="sLabour"></span>
+                </div>
+                <div class="totals-row sub">
+                    <span class="lbl">Sub total</span>
+                    <span class="val" id="sSub"></span>
+                </div>
+
+                <div class="totals-row">
+                    <span class="lbl">
+                        Markup
+                        <input class="input input-sm input-num" id="markup" type="number" step="0.5" min="0"
+                               value="@q.MarkupPct.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                               style="width:66px;display:inline-block;margin-left:6px" @ro />%
+                    </span>
+                    <span class="val" id="sMarkup"></span>
+                </div>
+
+                <div class="totals-row sub">
+                    <span class="lbl">Petrol / delivery</span>
+                    <span class="val">
+                        <input class="input input-sm input-num" id="petrol" type="number" step="10" min="0"
+                               value="@q.PetrolDelivery.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                               style="width:106px" @ro />
+                    </span>
+                </div>
+                <div class="totals-row">
+                    <span class="lbl">Grooves, cut-outs &amp; transport</span>
+                    <span class="val" id="sBelow"></span>
+                </div>
+
+                <div class="totals-row grand">
+                    <span class="lbl">Total</span>
+                    <span class="val" id="sTotal"></span>
+                </div>
+
+                <div class="totals-note">
+                    <strong>Order of operations.</strong> Markup applies to the sub total only.
+                    Petrol, grooves, cut-outs and transport are added after it at cost recovery,
+                    as confirmed by the client.
+                </div>
+            </div>
+            <div class="card-foot" style="display:block">
+                <div class="section-label">Sanity check</div>
+                <div style="display:flex;gap:20px;margin-top:6px">
+                    <div>
+                        <div class="tiny muted">Total area</div>
+                        <div class="strong num" id="cSqm"></div>
+                    </div>
+                    <div>
+                        <div class="tiny muted">Rand per m&sup2;</div>
+                        <div class="strong num" id="cRate"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h3>Next step</h3></div>
+            <div class="card-body">
+                <a class="btn btn-primary btn-block" asp-action="Quotation" asp-route-id="@q.Id">
+                    Compose customer quotation
+                </a>
+                <p class="hint" style="margin-top:10px">
+                    The quotation presents this number. It never shows the breakdown that produced it.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function rand(v) {
+            const p = Number(v).toFixed(2).split('.');
+            return 'R' + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + ',' + p[1];
+        }
+        function num(v, dp) {
+            const p = Number(v).toFixed(dp).split('.');
+            return p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + (p[1] ? ',' + p[1] : '');
+        }
+        function qty(v) { return Number(v) % 1 === 0 ? String(Number(v)) : num(v, 2); }
+
+        function recalc() {
+            let mTotal = 0, tSheets = 0, tSqm = 0;
+
+            document.querySelectorAll('.mat-row').forEach(r => {
+                const price  = parseFloat(r.dataset.sheetprice);
+                const len    = parseFloat(r.dataset.len);
+                const wid    = parseFloat(r.dataset.wid);
+                const sheets = parseFloat(r.querySelector('.mat-sheets').value) || 0;
+                const disc   = parseFloat(r.querySelector('.mat-disc').value) || 0;
+
+                const linm = sheets * len / 1000;
+                const sqm  = sheets * (len / 1000) * (wid / 1000);
+                const tot  = sheets * price * (1 - disc / 100);
+
+                r.querySelector('.mat-linm').textContent  = num(linm, 2);
+                r.querySelector('.mat-sqm').textContent   = num(sqm, 4);
+                r.querySelector('.mat-total').textContent = rand(tot);
+
+                mTotal += tot; tSheets += sheets; tSqm += sqm;
+            });
+
+            let markedUp = 0, below = 0;
+
+            document.querySelectorAll('.cost-row').forEach(r => {
+                const rate  = parseFloat(r.dataset.rate);
+                const input = r.querySelector('.cost-qty');
+
+                // Derived rows take their quantity from the materials, never from typing.
+                if (r.dataset.derived === 'sqm')    input.value = tSqm.toFixed(2);
+                if (r.dataset.derived === 'sheets') input.value = tSheets;
+
+                const n   = parseFloat(input.value) || 0;
+                const tot = n * rate;
+                r.querySelector('.cost-total').textContent = rand(tot);
+
+                if (r.dataset.markedup === '1') markedUp += tot; else below += tot;
+            });
+
+            const sub    = mTotal + markedUp;
+            const mk     = sub * (parseFloat(document.getElementById('markup').value) || 0) / 100;
+            const petrol = parseFloat(document.getElementById('petrol').value) || 0;
+            const total  = sub + mk + below + petrol;
+
+            document.getElementById('tSheets').textContent   = qty(tSheets);
+            document.getElementById('tSqm').textContent      = num(tSqm, 4);
+            document.getElementById('tMaterial').textContent = rand(mTotal);
+
+            document.getElementById('sMaterial').textContent = rand(mTotal);
+            document.getElementById('sLabour').textContent   = rand(markedUp);
+            document.getElementById('sSub').textContent      = rand(sub);
+            document.getElementById('sMarkup').textContent   = rand(mk);
+            document.getElementById('sBelow').textContent    = rand(below);
+            document.getElementById('sTotal').textContent    = rand(total);
+
+            document.getElementById('cSqm').textContent  = num(tSqm, 4) + ' m\u00B2';
+            document.getElementById('cRate').textContent = tSqm > 0 ? rand(total / tSqm) : '\u2014';
+        }
+
+        document.querySelectorAll('.mat-sheets, .mat-disc, .cost-qty, #markup, #petrol')
+            .forEach(i => i.addEventListener('input', recalc));
+
+        recalc();
+    </script>
+}

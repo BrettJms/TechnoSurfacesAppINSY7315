@@ -1,0 +1,138 @@
+﻿@model TechnoSurfaces.Controllers.QuoteListVm
+
+<div class="page-head">
+    <div>
+        <h2>Quotes</h2>
+        <p>
+            @Model.Quotes.Count quote@(Model.Quotes.Count == 1 ? "" : "s")
+            @if (Model.AnyFilter)
+            {
+                <text>matching your filters</text>
+            }
+            &middot; @Fmt.Rand(Model.TotalValue) total value
+        </p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-primary" asp-action="Create">
+            <svg class="ico ico-sm"><use href="#i-plus" /></svg> New quote
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <form method="get" class="filterbar">
+        <div class="search">
+            <svg class="ico ico-sm"><use href="#i-search" /></svg>
+            <input class="input" name="q" value="@Model.Search"
+                   placeholder="Reference, customer, site or project" />
+        </div>
+
+        <select class="select" name="status" onchange="this.form.submit()">
+            <option value="">All statuses</option>
+            @foreach (var s in Enum.GetValues<QuoteStatus>())
+            {
+                <option value="@s" selected="@(Model.Status == s.ToString())">
+                    @(s == QuoteStatus.PendingApproval ? "Pending approval" : s.ToString())
+                </option>
+            }
+        </select>
+
+        <select class="select" name="customerId" onchange="this.form.submit()">
+            <option value="">All customers</option>
+            @foreach (var c in Db.Customers.OrderBy(c => c.CompanyName))
+            {
+                <option value="@c.Id" selected="@(Model.CustomerId == c.Id)">@c.CompanyName</option>
+            }
+        </select>
+
+        <select class="select" name="ownerId" onchange="this.form.submit()">
+            <option value="">All estimators</option>
+            @foreach (var u in Db.Users)
+            {
+                <option value="@u.Id" selected="@(Model.OwnerId == u.Id)">@u.FullName</option>
+            }
+        </select>
+
+        <button class="btn btn-secondary btn-sm" type="submit">Apply</button>
+        @if (Model.AnyFilter)
+        {
+            <a class="btn btn-ghost btn-sm" asp-action="Index">Clear</a>
+        }
+    </form>
+
+    @if (!Model.Quotes.Any())
+    {
+        <div class="empty">
+            <svg class="ico"><use href="#i-search" /></svg>
+            <h3>No quotes match</h3>
+            <p>Try widening the filters, or start a new quote.</p>
+            <a class="btn btn-primary" asp-action="Create">New quote</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table class="data stack">
+                <thead>
+                    <tr>
+                        <th>Reference</th>
+                        <th>Customer</th>
+                        <th>Site &amp; project</th>
+                        <th>Estimator</th>
+                        <th>Status</th>
+                        <th>Valid until</th>
+                        <th class="right">Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var q in Model.Quotes)
+                    {
+                        <tr>
+                            <td data-label="Reference">
+                                <a class="row-link" asp-action="Costing" asp-route-id="@q.Id">@q.Ref</a>
+                                @if (q.VersionNumber > 1)
+                                {
+                                    <span class="badge" title="Revised after a counter-offer">v@q.VersionNumber</span>
+                                }
+                                <div class="tiny muted">@Fmt.Date(q.IssueDate)</div>
+                            </td>
+                            <td data-label="Customer">@Db.CustomerName(q.CustomerId)</td>
+                            <td data-label="Site &amp; project">
+                                <div class="small">@q.Project</div>
+                                <div class="tiny muted">@q.Site</div>
+                            </td>
+                            <td data-label="Estimator">@Db.UserName(q.OwnerUserId)</td>
+                            <td data-label="Status">
+                                <span class="pill pill-@q.StatusKey">@q.StatusLabel</span>
+                            </td>
+                            <td data-label="Valid until">
+                                @Fmt.Date(q.ValidUntil)
+                                @if (q.Status == QuoteStatus.Sent && q.DaysRemaining is <= 7 and >= 0)
+                                {
+                                    <div><span class="badge badge-warn">@q.DaysRemaining days left</span></div>
+                                }
+                                else if (q.IsExpired && q.Status == QuoteStatus.Sent)
+                                {
+                                    <div><span class="badge badge-danger">Expired</span></div>
+                                }
+                            </td>
+                            <td data-label="Total" class="right strong">@Fmt.Rand(q.Total)</td>
+                            <td data-label="" class="right nowrap">
+                                <a class="btn btn-ghost btn-sm" asp-action="Costing" asp-route-id="@q.Id" title="Costing sheet">
+                                    <svg class="ico ico-sm"><use href="#i-calc" /></svg>
+                                </a>
+                                <a class="btn btn-ghost btn-sm" asp-action="Quotation" asp-route-id="@q.Id" title="Customer quotation">
+                                    <svg class="ico ico-sm"><use href="#i-eye" /></svg>
+                                </a>
+                                <a class="btn btn-ghost btn-sm" asp-action="Versions" asp-route-id="@q.Id" title="Version history">
+                                    <svg class="ico ico-sm"><use href="#i-history" /></svg>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

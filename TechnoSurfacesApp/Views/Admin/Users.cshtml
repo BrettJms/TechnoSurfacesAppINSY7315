@@ -1,0 +1,166 @@
+﻿@model TechnoSurfaces.Controllers.UsersVm
+
+<div class="page-head">
+    <div>
+        <h2>Users</h2>
+        <p>@Model.ActiveCount active &middot; @Model.MdCount Managing Director &middot; @Model.EstimatorCount active estimator@(Model.EstimatorCount == 1 ? "" : "s")</p>
+    </div>
+    <div class="page-head-actions">
+        @if (Model.CanManage)
+        {
+            <button class="btn btn-primary" type="button">
+                <svg class="ico ico-sm"><use href="#i-plus" /></svg> Create user
+            </button>
+        }
+    </div>
+</div>
+
+@if (!Model.CanManage)
+{
+    <div class="notice notice-alert">
+        <svg class="ico"><use href="#i-lock" /></svg>
+        <div>Only the Managing Director creates and manages user accounts.</div>
+    </div>
+}
+
+<div class="notice notice-info">
+    <svg class="ico"><use href="#i-lock" /></svg>
+    <div>
+        <strong>There is no public registration.</strong>
+        Every account is created here by the Managing Director, who sends the new user an
+        activation link. A deactivated account is never deleted &mdash; historic quotes must keep
+        their author.
+    </div>
+</div>
+
+<div class="grid grid-main">
+    <div>
+        <div class="card">
+            <div class="card-head"><h2>Accounts</h2></div>
+            <div class="table-wrap">
+                <table class="data stack">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Last sign-in</th>
+                            <th>Created</th>@if (Model.CanManage) {
+                            <th></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in Model.Users)
+                    {
+                        <tr>
+                            <td data-label="User">
+                                <div style="display:flex;align-items:center;gap:10px">
+                                    <span class="avatar @(u.Role == UserRole.Estimator ? "sage" : "")">@u.Initials</span>
+                                    <div>
+                                        <div class="strong small">
+                                            @u.FullName
+                                            @if (u.Id == Model.Me.Id)
+                                            {
+                                                <span class="badge badge-sage">You</span>
+                                            }
+                                        </div>
+                                        <div class="tiny muted">@u.Email</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-label="Role">@u.RoleLabel</td>
+                            <td data-label="Status">
+                                @if (u.IsActive)
+                                {
+                                    <span class="pill pill-accepted">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="pill pill-draft">Deactivated</span>
+                                }
+                            </td>
+                            <td data-label="Last sign-in" class="small nowrap">
+                                @(u.LastLogin.HasValue ? Fmt.DateTimeShort(u.LastLogin.Value) : "Never")
+                            </td>
+                            <td data-label="Created" class="small nowrap">@Fmt.Date(u.CreatedOn)</td>
+                            @if (Model.CanManage)
+                            {
+                                <td data-label="" class="right nowrap">
+                                    <button class="btn btn-ghost btn-sm" type="button" title="Edit">
+                                        <svg class="ico ico-sm"><use href="#i-edit" /></svg>
+                                    </button>
+                                    @if (u.Id != Model.Me.Id)
+                                    {
+                                        <button class="btn btn-ghost btn-sm" type="button" title="@(u.IsActive ? "Deactivate" : "Reactivate")">
+                                            <svg class="ico ico-sm"><use href="#i-lock" /></svg>
+                                        </button>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div>
+    <div class="card">
+        <div class="card-head"><h3>Permission matrix</h3></div>
+        <div class="perm-grid">
+            <div class="perm-row head">
+                <div>Action</div><div>MD</div><div>Estimator</div>
+            </div>
+            @{
+                (string Label, bool Md, bool Est)[] perms =
+                {
+                        ("Create quotes", true, true),
+                        ("Own quotes need approval", false, true),
+                        ("Approve others' quotes", true, false),
+                        ("Edit any quote", true, false),
+                        ("Edit own draft quotes", true, true),
+                        ("View all pricing", true, true),
+                        ("Change material prices", true, false),
+                        ("Create user accounts", true, false),
+                    };
+            }
+            @foreach (var p in perms)
+            {
+                <div class="perm-row">
+                    <div>@p.Label</div>
+                    <div>
+                        @if (p.Md)
+                        {
+                            <svg class="ico ico-sm perm-yes"><use href="#i-check" /></svg>
+                        }
+                        else
+                        {
+
+                            <svg class="ico ico-sm perm-no"><use href="#i-check" /></svg>
+                        }
+                    </div>
+                    <div>
+                        @if (p.Est)
+                        {
+                            <svg class="ico ico-sm perm-yes"><use href="#i-check" /></svg>
+                        }
+                        else
+                        {
+
+                            <svg class="ico ico-sm perm-no"><use href="#i-check" /></svg>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        <div class="card-foot">
+            <span class="tiny muted">
+                All confirmed by the client. Everyone sees all pricing; only the MD approves,
+                edits freely and changes prices.
+            </span>
+        </div>
+    </div>
+</div>
+</div>

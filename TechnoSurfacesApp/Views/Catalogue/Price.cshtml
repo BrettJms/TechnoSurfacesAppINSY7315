@@ -1,0 +1,303 @@
+﻿@model TechnoSurfaces.Controllers.PriceVm
+@{
+    var e = Model.Entry;
+    var ro = Model.CanEdit ? "" : "disabled";
+}
+
+<div class="page-head">
+    <div>
+        <h2>@e.ColourName</h2>
+        <p>@Model.Supplier.Name &middot; @Model.ProductLine.Name &middot; @e.SizeLabel</p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-secondary" asp-action="Index">
+            <svg class="ico ico-sm"><use href="#i-arrow-left" /></svg> Catalogue
+        </a>
+    </div>
+</div>
+
+@if (!Model.CanEdit)
+{
+    <div class="notice notice-alert">
+        <svg class="ico"><use href="#i-lock" /></svg>
+        <div>
+            <strong>Read only.</strong> Only the Managing Director can change a material price.
+            Switch role in the top bar to view this as Paul.
+        </div>
+    </div>
+}
+else
+{
+    <div class="notice notice-warn">
+        <svg class="ico"><use href="#i-alert" /></svg>
+        <div>
+            <strong>Changing this price does not alter existing quotes.</strong>
+            Each quote holds the price it resolved at the time. A new price applies from its
+            effective date forward, and the change is written to the audit trail.
+        </div>
+    </div>
+}
+
+<div class="grid grid-main">
+    <div>
+        <div class="card">
+            <div class="card-head">
+                <svg class="ico" style="color:var(--ts-sage)"><use href="#i-layers" /></svg>
+                <h2>Pricing</h2>
+                <span class="spacer"></span>
+                <span class="badge">
+                    @(Model.Supplier.PricingStructure == PricingStructure.Band ? "Priced by band" : "Priced per item")
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="field-row field-row-2">
+                    <div class="field">
+                        <label class="label" for="sqm">Price per m&sup2; <span class="req">*</span></label>
+                        <div class="input-group">
+                            <span class="addon" style="border-left:1px solid var(--line);border-right:none;border-radius:var(--r-sm) 0 0 var(--r-sm)">R</span>
+                            <input class="input input-num" id="sqm" type="number" step="0.01"
+                                   style="border-radius:0 var(--r-sm) var(--r-sm) 0"
+                                   value="@e.EffectivePricePerSqm.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                   data-area="@e.SheetAreaSqm.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                            @ro />
+                        </div>
+                        <div class="hint">Stored ex-VAT, as every supplier quotes it</div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Price per sheet</label>
+                        <input class="input input-num strong" id="perSheet" disabled />
+                        <div class="hint">
+                            Derived: price per m&sup2; &times; @Fmt.Num(e.SheetAreaSqm) m&sup2;.
+                            Storing both independently is what lets them drift apart.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field-row field-row-3">
+                    <div class="field">
+                        <label class="label" for="eff">Effective from</label>
+                        <input class="input" id="eff" type="date"
+                               value="@e.EffectiveFrom.ToString("yyyy-MM-dd")" @ro />
+                    </div>
+                    <div class="field">
+                        <label class="label" for="status">Lifecycle status</label>
+                        <select class="select" id="status" @ro>
+                            @foreach (var st in Enum.GetValues<CatalogueStatus>())
+                            {
+                                <option value="@st" selected="@(e.Status == st)">
+                                    @(st == CatalogueStatus.PhasingOut ? "Phasing out" : st.ToString())
+                                </option>
+                            }
+                        </select>
+                        <div class="hint">Never deleted &mdash; historic quotes must keep resolving</div>
+                    </div>
+                    <div class="field">
+                        <label class="label" for="band">Price band</label>
+                        <input class="input" id="band" value="@(e.BandCode ?? "\u2014")" disabled />
+                        <div class="hint">
+                            @(e.BandCode is null
+                                ? "This supplier prices each item individually"
+                                : "Grouping only \u2014 the price lives on the entry")
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (Model.CanEdit)
+            {
+                <div class="card-foot">
+                    <button class="btn btn-primary" type="button">Save price change</button>
+                    <a class="btn btn-ghost" asp-action="Index">Cancel</a>
+                    <span style="flex:1"></span>
+                    <span class="tiny muted">Recorded against your account in the audit trail</span>
+                </div>
+            }
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <svg class="ico" style="color:var(--ts-blue)"><use href="#i-file" /></svg>
+                <h2>Entry details</h2>
+            </div>
+            <div class="table-wrap">
+                <table class="data stack">
+                    <tbody>
+                        <tr>
+                            <td data-label="Field" class="muted small">Supplier product code</td>
+                            <td data-label="Value" class="mono">@(string.IsNullOrEmpty(e.SupplierCode) ? "Not published" : e.SupplierCode)</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Field" class="muted small">Sheet dimensions</td>
+                            <td data-label="Value">@e.SizeLabel &middot; @Fmt.Area(e.SheetAreaSqm)</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Field" class="muted small">Colour range</td>
+                            <td data-label="Value">@(e.Range ?? "\u2014")</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Field" class="muted small">Supplier stock</td>
+                            <td data-label="Value">
+                                @(e.StockQty.HasValue ? Fmt.Qty(e.StockQty.Value) + " sheets" : "Not published")
+                            </td>
+                        </tr>
+                        <tr>
+                            <td data-label="Field" class="muted small">Price basis</td>
+                            <td data-label="Value">@e.PriceBasis</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Field" class="muted small">Supplier price list</td>
+                            <td data-label="Value">
+                                @Fmt.Date(Model.Supplier.PriceListDated)
+                                @if (Model.Supplier.IsStale)
+                                {
+                                    <span class="badge badge-warn">Over a year old</span>
+                                }
+                            </td>
+                        </tr>
+                        <tr>
+                            <td data-label="Field" class="muted small">Seamkit / adhesive</td>
+                            <td data-label="Value">@Fmt.Rand(Model.Supplier.AdhesivePrice) &mdash; follows this supplier</td>
+                        </tr>
+                        <tr>
+                            <td data-label="Field" class="muted small">Delivery terms</td>
+                            <td data-label="Value" class="small">@Model.Supplier.DeliveryTerms</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @if (Model.UsedBy.Count > 0)
+        {
+            <div class="card">
+                <div class="card-head">
+                    <svg class="ico" style="color:var(--ink-3)"><use href="#i-history" /></svg>
+                    <h3>Quotes using this material</h3>
+                    <span class="spacer"></span>
+                    <span class="badge">Prices frozen at quote time</span>
+                </div>
+                <div class="table-wrap">
+                    <table class="data stack">
+                        <thead>
+                            <tr>
+                                <th>Quote</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th class="right">Resolved at</th>
+                                <th class="right">Current</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var qq in Model.UsedBy)
+                            {
+                                var was = Model.ResolvedOn(qq);
+                                <tr>
+                                    <td data-label="Quote">
+                                        <a class="row-link" asp-controller="Quotes" asp-action="Costing" asp-route-id="@qq.Id">@qq.Ref</a>
+                                        <div class="tiny muted">@Fmt.Date(qq.IssueDate)</div>
+                                    </td>
+                                    <td data-label="Customer">@Db.CustomerName(qq.CustomerId)</td>
+                                    <td data-label="Status"><span class="pill pill-@qq.StatusKey">@qq.StatusLabel</span></td>
+                                    <td data-label="Resolved at" class="right strong">
+                                        @(was.HasValue ? Fmt.Rand(was.Value) : "\u2014")
+                                    </td>
+                                    <td data-label="Current" class="right muted">@Fmt.Rand(e.EffectivePricePerSheet)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div>
+        @if (Model.Siblings.Count > 0)
+        {
+            <div class="card">
+                <div class="card-head"><h3>Other sizes of this colour</h3></div>
+                <div class="card-body" style="padding:6px 20px">
+                    @foreach (var s in Model.Siblings)
+                    {
+                        <div class="check-row">
+                            <span class="check-body" style="flex:1">
+                                <span class="check-title">@s.SizeLabel</span>
+                                <span class="check-detail">
+                                    @Fmt.Rand(s.EffectivePricePerSqm) per m&sup2;
+                                    @if (s.BandCode is not null)
+                                    {
+                                        <text>&middot; band @s.BandCode</text>
+                                    }
+                                </span>
+                            </span>
+                            <span style="text-align:right">
+                                <span class="strong small num">@Fmt.Rand(s.EffectivePricePerSheet)</span><br />
+                                <a class="tiny" asp-action="Price" asp-route-id="@s.Id">Open</a>
+                            </span>
+                        </div>
+                    }
+                </div>
+                <div class="card-foot">
+                    <span class="tiny muted">
+                        Same colour, different price. This is why size and thickness sit in the
+                        price key rather than being cosmetic.
+                    </span>
+                </div>
+            </div>
+        }
+
+        <div class="card">
+            <div class="card-head"><h3>Change history</h3></div>
+            @if (Model.History.Count == 0)
+            {
+                <div class="card-body">
+                    <p class="small muted" style="margin:0">
+                        No recorded changes to this entry.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="card-body" style="padding:6px 20px">
+                    @foreach (var a in Model.History)
+                    {
+                        <div class="check-row">
+                            <span class="check-dot check-info">
+                                <svg class="ico" style="width:11px;height:11px;flex-basis:11px"><use href="#i-edit" /></svg>
+                            </span>
+                            <span class="check-body">
+                                <span class="check-title">@a.Action</span>
+                                <span class="check-detail">
+                                    @if (a.Field is not null)
+                                    {
+                                        @a.Field
+                                        <text>: </text>
+                                        <span style="text-decoration:line-through">@a.OldValue</span>
+                                        <text> &rarr; </text><strong>@a.NewValue</strong><br />
+                                    }
+                                    @a.UserName &middot; @Fmt.DateTimeShort(a.When)
+                                </span>
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function rand(v) {
+            const p = Number(v).toFixed(2).split('.');
+            return 'R' + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0') + ',' + p[1];
+        }
+        const sqm = document.getElementById('sqm');
+        function sync() {
+            const area = parseFloat(sqm.dataset.area) || 0;
+            const val = parseFloat(sqm.value) || 0;
+            document.getElementById('perSheet').value = rand(val * area);
+        }
+        sqm.addEventListener('input', sync);
+        sync();
+    </script>
+}

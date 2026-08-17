@@ -1,0 +1,55 @@
+﻿@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Activate account";
+    var done = ViewData["Done"] as bool? ?? false;
+}
+
+@if (!done)
+{
+    <h1>Set your password</h1>
+    <p class="lede">
+        Your account was created by <strong>Paul Schluter</strong>. Choose a password
+        to activate it.
+    </p>
+
+    <div class="card" style="background:#fafbfc;margin-bottom:20px">
+        <div class="card-body tight">
+            <div class="section-label">Account</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:7px">
+                <span class="avatar sage">DN</span>
+                <div>
+                    <div class="strong small">Devan Naidoo</div>
+                    <div class="tiny muted">devan@technosurfaces.co.za &middot; Estimator</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="Activate" method="post">
+        <div class="field">
+            <label class="label" for="pw">New password <span class="req">*</span></label>
+            <input class="input" id="pw" name="password" type="password" required />
+            <div class="hint">At least 10 characters, with one number and one capital letter.</div>
+        </div>
+
+        <div class="field">
+            <label class="label" for="pw2">Confirm password <span class="req">*</span></label>
+            <input class="input" id="pw2" name="confirm" type="password" required />
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-block" type="submit">
+            Activate account and sign in
+        </button>
+    </form>
+}
+else
+{
+    <div style="text-align:center">
+        <div class="avatar sage lg" style="margin:0 auto 16px;width:52px;height:52px;flex-basis:52px">
+            <svg class="ico ico-lg"><use href="#i-check" /></svg>
+        </div>
+        <h1>Account activated</h1>
+        <p class="lede">Your password is set. You can sign in now.</p>
+        <a class="btn btn-primary btn-block" asp-action="Login">Continue to sign in</a>
+    </div>
+}

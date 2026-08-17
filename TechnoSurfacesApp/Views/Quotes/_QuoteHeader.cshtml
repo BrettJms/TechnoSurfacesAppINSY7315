@@ -1,0 +1,49 @@
+﻿@model Quote
+@{
+    var cust = Db.GetCustomer(Model.CustomerId);
+    var contact = Db.GetContact(Model.CustomerId, Model.ContactId);
+}
+
+<div class="qstrip">
+    <div class="qstrip-item">
+        <div class="qstrip-label">Reference</div>
+        <div class="qstrip-value">
+            @Model.Ref
+            @if (Model.VersionNumber > 1)
+            {
+                <span class="badge">v@Model.VersionNumber</span>
+            }
+        </div>
+    </div>
+    <div class="qstrip-item">
+        <div class="qstrip-label">Customer</div>
+        <div class="qstrip-value">@cust?.CompanyName</div>
+    </div>
+    <div class="qstrip-item">
+        <div class="qstrip-label">Attention</div>
+        <div class="qstrip-value">@contact?.Name</div>
+    </div>
+    <div class="qstrip-item">
+        <div class="qstrip-label">Site</div>
+        <div class="qstrip-value">@Model.Site</div>
+    </div>
+    <div class="qstrip-item">
+        <div class="qstrip-label">Estimator</div>
+        <div class="qstrip-value">@Db.UserName(Model.OwnerUserId)</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="qstrip-item">
+        <div class="qstrip-label">Status</div>
+        <div class="qstrip-value"><span class="pill pill-@Model.StatusKey">@Model.StatusLabel</span></div>
+    </div>
+    <div class="qstrip-item">
+        <div class="qstrip-label">Valid until</div>
+        <div class="qstrip-value">
+            @Fmt.Date(Model.ValidUntil)
+            @if (Model.IsExpired)
+            {
+                <span class="badge badge-danger">Expired</span>
+            }
+        </div>
+    </div>
+</div>

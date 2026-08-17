@@ -1,0 +1,60 @@
+﻿@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Sign in";
+}
+
+<h1>Sign in</h1>
+<p class="lede">Use the credentials issued to you by the Managing Director.</p>
+
+<form asp-action="Login" method="post">
+    <div class="field">
+        <label class="label" for="email">Email address</label>
+        <input class="input" id="email" name="email" type="email"
+               placeholder="you@technosurfaces.co.za" value="paul@technosurfaces.co.za" />
+    </div>
+
+    <div class="field">
+        <label class="label" for="password">Password</label>
+        <input class="input" id="password" name="password" type="password" value="demo" />
+        <div class="hint">
+            <a asp-action="ForgotPassword">Forgotten your password?</a>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="check">
+            <input type="checkbox" name="remember" />
+            <span>Keep me signed in on this device</span>
+        </label>
+    </div>
+
+    <button class="btn btn-primary btn-lg btn-block" type="submit">
+        Sign in
+        <svg class="ico ico-sm"><use href="#i-chevron-right" /></svg>
+    </button>
+</form>
+
+<div class="notice notice-info" style="margin-top:26px">
+    <svg class="ico"><use href="#i-lock" /></svg>
+    <div>
+        <strong>Accounts are created by the Managing Director.</strong>
+        There is no public registration &mdash; if you need access, ask Paul to
+        create an account for you.
+    </div>
+</div>
+
+<div style="margin-top:22px;padding-top:20px;border-top:1px solid var(--line)">
+    <div class="section-label" style="margin-bottom:9px">Quick access</div>
+    <div class="btn-row">
+        @foreach (var u in Db.ActiveUsers)
+        {
+            <form asp-action="Login" method="post">
+                <input type="hidden" name="email" value="@u.Email" />
+                <button class="btn btn-secondary btn-sm" type="submit">
+                    <span class="avatar" style="width:20px;height:20px;flex-basis:20px;font-size:.6rem">@u.Initials</span>
+                    @u.FullName.Split(' ')[0]
+                </button>
+            </form>
+        }
+    </div>
+</div>

@@ -1,0 +1,158 @@
+﻿@model TechnoSurfaces.Controllers.TermsVm
+
+<div class="page-head">
+    <div>
+        <h2>Quotation terms</h2>
+        <p>Standing content carried by every customer quotation</p>
+    </div>
+    <div class="page-head-actions">
+        <a class="btn btn-secondary" asp-controller="Quotes" asp-action="Index">
+            <svg class="ico ico-sm"><use href="#i-file" /></svg> See it on a quote
+        </a>
+    </div>
+</div>
+
+@if (!Model.CanEdit)
+{
+    <div class="notice notice-alert">
+        <svg class="ico"><use href="#i-lock" /></svg>
+        <div>Only the Managing Director edits the standing terms.</div>
+    </div>
+}
+
+<div class="notice notice-info">
+    <svg class="ico"><use href="#i-info" /></svg>
+    <div>
+        Held in one place and versioned, so a quote already sent keeps the terms it was issued
+        under even if this wording changes later.
+    </div>
+</div>
+
+<div class="grid grid-main">
+    <div>
+        <div class="card">
+            <div class="card-head">
+                <svg class="ico" style="color:var(--ts-blue)"><use href="#i-file" /></svg>
+                <h2>Content</h2>
+            </div>
+            <div class="card-body">
+
+                <div class="term-block">
+                    <h4>Notes</h4>
+                    <textarea class="input" rows="2" disabled="@(!Model.CanEdit)">Any span in carcass greater than 700mm must be re-enforced.</textarea>
+                </div>
+
+                <div class="term-block">
+                    <h4>Lead times</h4>
+                    <div class="field-row field-row-2">
+                        <div class="field">
+                            <label class="label">Material</label>
+                            <input class="input" disabled="@(!Model.CanEdit)"
+                                   value="2 working days if in stock at suppliers; 6 to 8 weeks if imported" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Production</label>
+                            <input class="input" disabled="@(!Model.CanEdit)"
+                                   value="5 working days from written acceptance and deposit" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="term-block">
+                    <h4>Exclusions</h4>
+                    <textarea class="input" rows="3" disabled="@(!Model.CanEdit)">Sealing between countertop and walls
+Any plumbing or electrical work
+Removal of existing worktops</textarea>
+                </div>
+
+                <div class="term-block">
+                    <h4>Terms &amp; conditions</h4>
+                    <textarea class="input" rows="6" disabled="@(!Model.CanEdit)">Quotation valid for 30 days only
+Damage caused by other parties/trades is charged as extra
+No liability for negligent damage once handed over, or once signed "Received in Good Order"
+No work commences until written acceptance and deposit paid, or an official order number for account customers
+Prices exclude VAT and delivery unless stated
+All pricing subject to final measurement on site; changes are charged for
+No contra charges, set off or retentions unless agreed in writing beforehand</textarea>
+                    <div class="hint">
+                        <strong>Quote validity (30 days)</strong> is also read by the system to set
+                        each quote's expiry date &mdash; changing it here changes new quotes only.
+                    </div>
+                </div>
+
+                <div class="term-block">
+                    <h4>Disclaimers</h4>
+                    <textarea class="input" rows="4" disabled="@(!Model.CanEdit)">No warranty where material is used in an application the manufacturer does not support
+Solid dark colours scratch more easily than lighter speckled colours - not recommended for kitchen worktops or high-traffic areas
+Veined or glitter colours may not give a seamless finish due to the directional nature of the material
+No warranty where material is in direct sunlight or variable weather</textarea>
+                </div>
+
+                <div class="term-block">
+                    <h4>Payment &amp; banking</h4>
+                    <div class="field-row field-row-2">
+                        <div class="field">
+                            <label class="label">Payment terms</label>
+                            <input class="input" disabled="@(!Model.CanEdit)" value="60% deposit on order, balance on completion" />
+                        </div>
+                        <div class="field">
+                            <label class="label">Bank details</label>
+                            <input class="input" disabled="@(!Model.CanEdit)" value="ABSA Bank, Claremont, branch 632005, account 4075862554" />
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            @if (Model.CanEdit)
+            {
+                <div class="card-foot">
+                    <button class="btn btn-primary" type="button">Save as new version</button>
+                    <span class="tiny muted" style="margin-left:6px">
+                        Quotes already sent are unaffected
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div>
+        <div class="card">
+            <div class="card-head"><h3>Warranty by brand</h3></div>
+            <div class="table-wrap">
+                <table class="data">
+                    <thead><tr><th>Brand</th><th>Material</th><th>Workmanship</th></tr></thead>
+                    <tbody>
+                        <tr><td>DuPont Corian</td><td>10 years</td><td>10 years (limited)</td></tr>
+                        <tr><td>Avonite, Samsung Staron</td><td>10 years</td><td>1 year</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-foot">
+                <span class="tiny muted">
+                    Applied automatically &mdash; the quotation shows the wording that matches the
+                    brand actually quoted, not free text typed per job.
+                </span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head"><h3>Where this appears</h3></div>
+            <div class="card-body" style="padding:6px 20px">
+                <div class="check-row">
+                    <span class="check-dot check-ok"><svg class="ico" style="width:11px;height:11px;flex-basis:11px"><use href="#i-file" /></svg></span>
+                    <span class="check-body">
+                        <span class="check-title">Customer quotation only</span>
+                        <span class="check-detail">Never on the internal costing sheet.</span>
+                    </span>
+                </div>
+                <div class="check-row">
+                    <span class="check-dot check-info"><svg class="ico" style="width:11px;height:11px;flex-basis:11px"><use href="#i-history" /></svg></span>
+                    <span class="check-body">
+                        <span class="check-title">Versioned</span>
+                        <span class="check-detail">A quote keeps the wording it was issued under.</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
