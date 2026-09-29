@@ -25,6 +25,16 @@ public class RateItem
     public DerivationRule Derivation { get; set; } = DerivationRule.Entered;
 
     /// <summary>
+    /// Multiplies the derived quantity. Silicon and sealing is sheets multiplied by
+    /// two, so it carries a factor of 2 against <see cref="DerivationRule.FromSheetCount"/>.
+    /// Consumables and transport take the figure as it stands and carry 1.
+    ///
+    /// The sheets-times-two rule is a team assumption and has not been confirmed by
+    /// the client.
+    /// </summary>
+    public decimal DerivationFactor { get; set; } = 1m;
+
+    /// <summary>
     /// Multiplier applied to a related rate rather than a separately maintained
     /// figure. Overtime is normal fabrication multiplied by 1.5 and installation
     /// mirrors fabrication, so those relationships are expressed as rules here and

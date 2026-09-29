@@ -56,6 +56,12 @@ public sealed class CatalogueReader : ICatalogueReader
             .OrderByDescending(p => p.EffectiveFrom)
             .FirstOrDefaultAsync(ct);
 
+    public Task<RateItem?> GetRateItemAsync(int rateItemId, CancellationToken ct = default) =>
+        _db.RateItems
+            .AsNoTracking()
+            .Include(r => r.DerivedFromRateItem)
+            .FirstOrDefaultAsync(r => r.Id == rateItemId, ct);
+
     public Task<RatePrice?> FindRatePriceAsync(int rateItemId, int? supplierId, DateOnly asAt, CancellationToken ct = default) =>
         _db.RatePrices
             .AsNoTracking()

@@ -76,10 +76,12 @@ public sealed class QuoteCalculationService : IQuoteCalculationService
             switch (line.Derivation)
             {
                 case DerivationRule.FromTotalAreaM2:
-                    line.SetDerivedQuantity(decimal.Round(totalArea, 4));
+                    line.SetDerivedQuantity(decimal.Round(totalArea * line.DerivationFactor, 4));
                     break;
                 case DerivationRule.FromSheetCount:
-                    line.SetDerivedQuantity(totalSheets);
+                    // Silicon and sealing carries a factor of two; consumables and
+                    // transport carry one.
+                    line.SetDerivedQuantity(decimal.Round(totalSheets * line.DerivationFactor, 4));
                     break;
                 case DerivationRule.Entered:
                 default:

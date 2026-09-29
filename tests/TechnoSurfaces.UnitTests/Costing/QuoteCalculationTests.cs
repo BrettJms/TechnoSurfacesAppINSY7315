@@ -176,21 +176,16 @@ public class QuoteCalculationTests
     // ------------------------------------------------------------------- US-22
 
     [Fact]
-    public void A_line_keeps_the_price_it_was_created_with()
+    public void A_line_exposes_no_way_to_change_the_price_it_was_created_with()
     {
-        // The resolved price is copied onto the line, so a later catalogue change
-        // cannot move an existing quote. NFR-11.
-        var version = NewVersion(markupPercent: 15m);
-        var line = Material(unitPrice: 6300m, quantity: 2m);
-        version.AddCostingLine(line);
+        // The copied price has no public setter, so nothing outside the domain can
+        // move an existing quote's figures. The end-to-end behaviour, with a real
+        // catalogue price changing underneath a saved line, is covered in
+        // PriceSnapshotTests.
+        var property = typeof(CostingLine).GetProperty(nameof(CostingLine.ResolvedUnitPrice));
 
-        var before = _calculator.Calculate(version).TotalIncVat;
-
-        // The catalogue price changes. Nothing on the line references it.
-        var after = _calculator.Calculate(version).TotalIncVat;
-
-        Assert.Equal(before, after);
-        Assert.Equal(6300m, line.ResolvedUnitPrice);
+        Assert.NotNull(property);
+        Assert.Null(property!.SetMethod?.IsPublic == true ? property.SetMethod : null);
     }
 
     // ---------------------------------------------------------------- rounding

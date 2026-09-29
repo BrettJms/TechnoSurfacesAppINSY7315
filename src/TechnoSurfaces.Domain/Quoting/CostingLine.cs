@@ -88,6 +88,12 @@ public class CostingLine
 
     public DerivationRule Derivation { get; private set; }
 
+    /// <summary>
+    /// Snapshot of the rate item's derivation factor. Silicon and sealing is sheets
+    /// multiplied by two; consumables and transport carry 1.
+    /// </summary>
+    public decimal DerivationFactor { get; private set; } = 1m;
+
     /// <summary>Sheet area, on a material line. Drives the area-derived quantities.</summary>
     public decimal? SheetAreaM2 { get; private set; }
 
@@ -141,13 +147,15 @@ public class CostingLine
         string priceOrigin,
         decimal quantity,
         bool isBelowTheLine,
-        DerivationRule derivation = DerivationRule.Entered)
+        DerivationRule derivation = DerivationRule.Entered,
+        decimal derivationFactor = 1m)
     {
         var line = new CostingLine(
             CostingLineType.Rate, description, resolvedUnitPrice, priceOrigin,
             quantity, supplierDiscountPercent: 0m, isBelowTheLine, derivation)
         {
-            RateItemId = rateItemId
+            RateItemId = rateItemId,
+            DerivationFactor = derivationFactor
         };
         return line;
     }

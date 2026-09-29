@@ -28,4 +28,7 @@ public interface ICatalogueReader
 
     /// <summary>The rate amount in force on the given date, optionally for a supplier.</summary>
     Task<RatePrice?> FindRatePriceAsync(int rateItemId, int? supplierId, DateOnly asAt, CancellationToken ct = default);
+
+    /// <summary>A rate item, including the item its rate is derived from where one is set.</summary>
+    Task<RateItem?> GetRateItemAsync(int rateItemId, CancellationToken ct = default);
 }

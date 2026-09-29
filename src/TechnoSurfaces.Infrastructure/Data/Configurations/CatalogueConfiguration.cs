@@ -141,6 +141,7 @@ public sealed class RateItemConfiguration : IEntityTypeConfiguration<RateItem>
         e.Property(x => x.Name).HasMaxLength(120).IsRequired();
         e.Property(x => x.Description).HasMaxLength(500);
         e.Property(x => x.DerivedFromRateItemMultiplier).HasPrecision(5, 2);
+        e.Property(x => x.DerivationFactor).HasPrecision(9, 4);
 
         // Overtime is normal fabrication x 1.5 and installation mirrors
         // fabrication, expressed as a relationship rather than a duplicated figure.

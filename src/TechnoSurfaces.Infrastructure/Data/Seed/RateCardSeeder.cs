@@ -62,7 +62,7 @@ public static class RateCardSeeder
 
         // ---- Derived quantities, reproducing the spreadsheet's behaviour ----
 
-        var consumables = Add(db, "Sandpaper and consumables", RateCategory.Extras, ChargeUnit.SquareMetre,
+        Add(db, "Sandpaper and consumables", RateCategory.Extras, ChargeUnit.SquareMetre,
             derivation: DerivationRule.FromTotalAreaM2, belowTheLine: true);
 
         var transport = Add(db, "Transport", RateCategory.Extras, ChargeUnit.Sheet,
@@ -70,8 +70,8 @@ public static class RateCardSeeder
 
         // Quantity is sheets multiplied by two, subject to estimator override. This
         // is a team assumption and has not been confirmed by the client.
-        var silicon = Add(db, "Silicon and sealing", RateCategory.Extras, ChargeUnit.Each,
-            derivation: DerivationRule.FromSheetCount, belowTheLine: true);
+        Add(db, "Silicon and sealing", RateCategory.Extras, ChargeUnit.Each,
+            derivation: DerivationRule.FromSheetCount, belowTheLine: true, derivationFactor: 2m);
 
         // ---- Adhesive, where the price genuinely varies by supplier ----
 
@@ -106,14 +106,12 @@ public static class RateCardSeeder
             db.RatePrices.Add(new RatePrice { RateItemId = transport.Id, SupplierId = perago.Id, Amount = 510.00m, EffectiveFrom = effective });
 
         await db.SaveChangesAsync(ct);
-
-        _ = consumables;
-        _ = silicon;
     }
 
     private static RateItem Add(
         TechnoSurfacesDbContext db, string name, RateCategory category, ChargeUnit unit,
-        DerivationRule derivation = DerivationRule.Entered, bool belowTheLine = false)
+        DerivationRule derivation = DerivationRule.Entered, bool belowTheLine = false,
+        decimal derivationFactor = 1m)
     {
         var item = new RateItem
         {
@@ -121,7 +119,8 @@ public static class RateCardSeeder
             Category = category,
             Unit = unit,
             Derivation = derivation,
-            IsBelowTheLine = belowTheLine
+            IsBelowTheLine = belowTheLine,
+            DerivationFactor = derivationFactor
         };
         db.RateItems.Add(item);
         return item;

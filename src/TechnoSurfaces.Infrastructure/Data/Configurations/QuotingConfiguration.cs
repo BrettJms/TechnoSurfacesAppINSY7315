@@ -120,6 +120,7 @@ public sealed class CostingLineConfiguration : IEntityTypeConfiguration<CostingL
         // quantities are fractional.
         e.Property(x => x.Quantity).HasPrecision(18, 4);
         e.Property(x => x.SheetAreaM2).HasPrecision(18, 4);
+        e.Property(x => x.DerivationFactor).HasPrecision(9, 4);
 
         // A costing line is either a material line or a rate line.
         e.ToTable(t => t.HasCheckConstraint(
