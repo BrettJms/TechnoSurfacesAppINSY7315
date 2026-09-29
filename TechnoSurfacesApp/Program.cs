@@ -10,6 +10,7 @@ builder.Services.AddSession(o =>
     o.Cookie.IsEssential = true;
 });
 builder.Services.AddScoped<TechnoSurfaces.Services.DemoSession>();
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 // Load the in-memory demo data (no database in the prototype).
@@ -30,6 +31,8 @@ app.UseSession();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapHealthChecks("/health");
 
 app.MapControllerRoute(
     name: "default",
