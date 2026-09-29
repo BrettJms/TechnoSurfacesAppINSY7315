@@ -1,0 +1,178 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TechnoSurfaces.Domain.Auditing;
+using TechnoSurfaces.Domain.People;
+using TechnoSurfaces.Domain.Quoting;
+
+namespace TechnoSurfaces.Infrastructure.Data.Configurations;
+
+public sealed class CustomerConfiguration : IEntityTypeConfiguration<Customer>
+{
+    public void Configure(EntityTypeBuilder<Customer> e)
+    {
+        e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        e.Property(x => x.AccountCode).HasMaxLength(40);
+        e.Property(x => x.AddressLine1).HasMaxLength(200);
+        e.Property(x => x.AddressLine2).HasMaxLength(200);
+        e.Property(x => x.City).HasMaxLength(100);
+        e.Property(x => x.PostalCode).HasMaxLength(20);
+        e.Property(x => x.VatNumber).HasMaxLength(40);
+        e.HasIndex(x => x.Name);
+    }
+}
+
+public sealed class ContactConfiguration : IEntityTypeConfiguration<Contact>
+{
+    public void Configure(EntityTypeBuilder<Contact> e)
+    {
+        e.Property(x => x.FullName).HasMaxLength(200).IsRequired();
+        e.Property(x => x.Email).HasMaxLength(200);
+        e.Property(x => x.Phone).HasMaxLength(40);
+        e.Property(x => x.Position).HasMaxLength(100);
+
+        // Some customers have four or five estimators sending through requests.
+        e.HasOne(x => x.Customer)
+            .WithMany(c => c.Contacts)
+            .HasForeignKey(x => x.CustomerId)
+            .OnDelete(DeleteBehavior.NoAction);
+    }
+}
+
+public sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
+{
+    public void Configure(EntityTypeBuilder<AppUser> e)
+    {
+        e.Property(x => x.Id).HasMaxLength(450);
+        e.Property(x => x.UserName).HasMaxLength(100).IsRequired();
+        e.Property(x => x.FullName).HasMaxLength(200).IsRequired();
+        e.Property(x => x.Email).HasMaxLength(200);
+        e.Ignore(x => x.IsManagingDirector);
+
+        e.HasIndex(x => x.UserName).IsUnique();
+    }
+}
+
+public sealed class QuoteConfiguration : IEntityTypeConfiguration<Quote>
+{
+    public void Configure(EntityTypeBuilder<Quote> e)
+    {
+        e.Property(x => x.Reference).HasMaxLength(40).IsRequired();
+        e.Property(x => x.Site).HasMaxLength(200);
+        e.Property(x => x.Project).HasMaxLength(200);
+        e.Property(x => x.CreatedByUserId).HasMaxLength(450).IsRequired();
+        e.Property(x => x.ApprovedByUserId).HasMaxLength(450);
+
+        e.Ignore(x => x.CurrentVersion);
+        e.Ignore(x => x.OriginalVersion);
+
+        e.HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.NoAction);
+        e.HasOne(x => x.Contact).WithMany().HasForeignKey(x => x.ContactId).OnDelete(DeleteBehavior.NoAction);
+
+        e.HasMany(x => x.Versions)
+            .WithOne(v => v.Quote!)
+            .HasForeignKey(v => v.QuoteId)
+            .OnDelete(DeleteBehavior.NoAction);
+        e.Navigation(x => x.Versions).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // One reference identifies one quote.
+        e.HasIndex(x => x.Reference).IsUnique();
+
+        // Supports the approval queue and the quote listing screen.
+        e.HasIndex(x => new { x.Status, x.IssueDate });
+    }
+}
+
+public sealed class QuoteVersionConfiguration : IEntityTypeConfiguration<QuoteVersion>
+{
+    public void Configure(EntityTypeBuilder<QuoteVersion> e)
+    {
+        e.Property(x => x.CreatedByUserId).HasMaxLength(450).IsRequired();
+        e.Property(x => x.MarkupPercent).HasPrecision(5, 2);
+        e.Property(x => x.VatRate).HasPrecision(5, 4);
+
+        e.HasMany(x => x.CostingLines)
+            .WithOne()
+            .HasForeignKey(l => l.QuoteVersionId)
+            .OnDelete(DeleteBehavior.NoAction);
+        e.Navigation(x => x.CostingLines).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        e.HasMany(x => x.QuotationLines)
+            .WithOne()
+            .HasForeignKey(l => l.QuoteVersionId)
+            .OnDelete(DeleteBehavior.NoAction);
+        e.Navigation(x => x.QuotationLines).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        // Version numbers are sequential within a quote.
+        e.HasIndex(x => new { x.QuoteId, x.VersionNo }).IsUnique();
+    }
+}
+
+public sealed class CostingLineConfiguration : IEntityTypeConfiguration<CostingLine>
+{
+    public void Configure(EntityTypeBuilder<CostingLine> e)
+    {
+        e.Property(x => x.Description).HasMaxLength(400).IsRequired();
+        e.Property(x => x.PriceOrigin).HasMaxLength(400).IsRequired();
+        e.Property(x => x.ResolvedUnitPrice).HasPrecision(18, 2);
+        e.Property(x => x.SupplierDiscountPercent).HasPrecision(5, 2);
+
+        // Not an integer: Woodcentre quote stock in half sheets, and area-derived
+        // quantities are fractional.
+        e.Property(x => x.Quantity).HasPrecision(18, 4);
+        e.Property(x => x.SheetAreaM2).HasPrecision(18, 4);
+
+        // A costing line is either a material line or a rate line.
+        e.ToTable(t => t.HasCheckConstraint(
+            "CK_CostingLine_MaterialOrRate",
+            "([MaterialPriceId] IS NOT NULL AND [RateItemId] IS NULL) OR ([MaterialPriceId] IS NULL AND [RateItemId] IS NOT NULL)"));
+
+        e.HasIndex(x => x.QuoteVersionId);
+    }
+}
+
+public sealed class QuotationLineConfiguration : IEntityTypeConfiguration<QuotationLine>
+{
+    public void Configure(EntityTypeBuilder<QuotationLine> e)
+    {
+        e.Property(x => x.Description).HasMaxLength(400).IsRequired();
+        e.Property(x => x.Room).HasMaxLength(120);
+        e.Property(x => x.AmountExVat).HasPrecision(18, 2);
+        e.Property(x => x.Quantity).HasPrecision(18, 4);
+
+        e.HasIndex(x => x.QuoteVersionId);
+    }
+}
+
+public sealed class InvoiceRecordConfiguration : IEntityTypeConfiguration<InvoiceRecord>
+{
+    public void Configure(EntityTypeBuilder<InvoiceRecord> e)
+    {
+        e.Property(x => x.InvoiceNumber).HasMaxLength(40).IsRequired();
+        e.Property(x => x.AmountIncVat).HasPrecision(18, 2);
+        e.Property(x => x.RecordedByUserId).HasMaxLength(450).IsRequired();
+
+        // An accepted quote has at most one tax invoice, and none until one is raised.
+        e.HasOne(x => x.Quote)
+            .WithOne()
+            .HasForeignKey<InvoiceRecord>(x => x.QuoteId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        e.HasIndex(x => x.InvoiceNumber).IsUnique();
+    }
+}
+
+public sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEntry>
+{
+    public void Configure(EntityTypeBuilder<AuditEntry> e)
+    {
+        e.Property(x => x.EntityName).HasMaxLength(100).IsRequired();
+        e.Property(x => x.EntityKey).HasMaxLength(100).IsRequired();
+        e.Property(x => x.PropertyName).HasMaxLength(100).IsRequired();
+        e.Property(x => x.OldValue).HasMaxLength(1000);
+        e.Property(x => x.NewValue).HasMaxLength(1000);
+        e.Property(x => x.UserId).HasMaxLength(450).IsRequired();
+
+        e.HasIndex(x => new { x.EntityName, x.EntityKey });
+        e.HasIndex(x => x.ChangedAtUtc);
+    }
+}
