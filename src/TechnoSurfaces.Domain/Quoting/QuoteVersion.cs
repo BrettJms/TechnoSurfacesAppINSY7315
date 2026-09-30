@@ -1,0 +1,133 @@
+namespace TechnoSurfaces.Domain.Quoting;
+
+/// <summary>
+/// An immutable snapshot of the contents of a quote, and the memento in the Memento
+/// pattern described in the design document.
+///
+/// Required because the original offer must be retained when a customer
+/// counter-offer causes a quote to be revised, and because the prices within a
+/// quote must not move once it has been issued. Costing lines and quotation lines
+/// belong to the version rather than to the quote; that is what renders the history
+/// immutable.
+///
+/// A version is built, then sealed. After sealing, nothing can be added or changed:
+/// a revision creates a new version instead.
+/// </summary>
+public class QuoteVersion
+{
+    private readonly List<CostingLine> _costingLines = new();
+    private readonly List<QuotationLine> _quotationLines = new();
+
+    private QuoteVersion() { }
+
+    public QuoteVersion(int versionNo, string createdByUserId, decimal markupPercent, decimal vatRate = 0.15m)
+    {
+        if (versionNo < 1)
+            throw new ArgumentOutOfRangeException(nameof(versionNo), "Version numbers start at 1.");
+        if (markupPercent < 0)
+            throw new ArgumentOutOfRangeException(nameof(markupPercent), "A markup cannot be negative.");
+
+        VersionNo = versionNo;
+        CreatedByUserId = createdByUserId;
+        MarkupPercent = markupPercent;
+        VatRate = vatRate;
+        CreatedAtUtc = DateTime.UtcNow;
+    }
+
+    public int Id { get; private set; }
+    public int QuoteId { get; private set; }
+    public Quote? Quote { get; private set; }
+
+    public int VersionNo { get; private set; }
+
+    public string CreatedByUserId { get; private set; } = "";
+    public DateTime CreatedAtUtc { get; private set; }
+
+    /// <summary>Editable per quotation, and applied to the sub-total only.</summary>
+    public decimal MarkupPercent { get; private set; }
+
+    /// <summary>
+    /// Stored on the version rather than hard-coded, so that a historic quote keeps
+    /// the rate it was created under if the rate ever changes.
+    /// </summary>
+    public decimal VatRate { get; private set; }
+
+    /// <summary>Once sealed the version is a read-only record.</summary>
+    public bool IsSealed { get; private set; }
+
+    public IReadOnlyCollection<CostingLine> CostingLines => _costingLines.AsReadOnly();
+    public IReadOnlyCollection<QuotationLine> QuotationLines => _quotationLines.AsReadOnly();
+
+    public void AddCostingLine(CostingLine line)
+    {
+        EnsureUnsealed();
+        _costingLines.Add(line);
+    }
+
+    public void AddQuotationLine(QuotationLine line)
+    {
+        EnsureUnsealed();
+        _quotationLines.Add(line);
+    }
+
+    public void RemoveCostingLine(CostingLine line)
+    {
+        EnsureUnsealed();
+        _costingLines.Remove(line);
+    }
+
+    public void SetMarkupPercent(decimal markupPercent)
+    {
+        EnsureUnsealed();
+        if (markupPercent < 0)
+            throw new ArgumentOutOfRangeException(nameof(markupPercent), "A markup cannot be negative.");
+        MarkupPercent = markupPercent;
+    }
+
+    /// <summary>
+    /// Closes the version. Called when the quote is submitted or issued. After this
+    /// the snapshot cannot change.
+    /// </summary>
+    public void Seal() => IsSealed = true;
+
+    private void EnsureUnsealed()
+    {
+        if (IsSealed)
+            throw new InvalidOperationException(
+                $"Version {VersionNo} is sealed. Revise the quote to create a new version instead of altering this one.");
+    }
+
+    // ---- The calculation. Order of operations confirmed by the client. ----
+
+    /// <summary>Sum of line totals above the line.</summary>
+    public decimal SubTotalExVat() =>
+        Round(_costingLines.Where(l => !l.IsBelowTheLine).Sum(l => l.LineTotal()));
+
+    /// <summary>Markup applies to the sub-total only, never to below-the-line items.</summary>
+    public decimal MarkupAmount() =>
+        Round(SubTotalExVat() * MarkupPercent / 100m);
+
+    /// <summary>Below-the-line items are cost recovery and are not marked up.</summary>
+    public decimal BelowTheLineTotal() =>
+        Round(_costingLines.Where(l => l.IsBelowTheLine).Sum(l => l.LineTotal()));
+
+    public decimal TotalExVat() =>
+        Round(SubTotalExVat() + MarkupAmount() + BelowTheLineTotal());
+
+    public decimal VatAmount() =>
+        Round(TotalExVat() * VatRate);
+
+    public decimal TotalIncVat() =>
+        Round(TotalExVat() + VatAmount());
+
+    /// <summary>Total square metres of material on the quote.</summary>
+    public decimal TotalAreaM2() =>
+        decimal.Round(_costingLines.Sum(l => l.AreaM2()), 4);
+
+    /// <summary>Total sheets of material on the quote.</summary>
+    public decimal TotalSheetCount() =>
+        _costingLines.Sum(l => l.SheetCount());
+
+    private static decimal Round(decimal value) =>
+        decimal.Round(value, 2, MidpointRounding.AwayFromZero);
+}
