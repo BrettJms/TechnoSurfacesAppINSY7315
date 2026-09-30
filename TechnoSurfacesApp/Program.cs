@@ -1,8 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TechnoSurfacesApp.Identity;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+using TechnoSurfacesApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +21,7 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
 builder.Services
     .AddIdentity<UserAccount, IdentityRole>(options =>
     {
-        // Length over composition rules, following NIST SP 800-63B (Task 1 8.2).
+        // Length over composition rules, following NIST SP 800-63B (Task 1 §8.2).
         options.Password.RequiredLength = 12;
         options.Password.RequireDigit = true;
         options.Password.RequireLowercase = true;
@@ -60,10 +61,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
     options.ValidationInterval = TimeSpan.FromMinutes(1));
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-
-// Every state-changing request must carry an antiforgery token (Task 1 8.8).
+// Every state-changing request must carry an antiforgery token (Task 1 §8.8).
 // Applied globally so a new form cannot forget it.
 builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
@@ -79,12 +77,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSession(o =>
-{
-    o.IdleTimeout = TimeSpan.FromHours(8);
-    o.Cookie.HttpOnly = true;
-    o.Cookie.IsEssential = true;
-});
+builder.Services.AddScoped<ISignInService, SignInService>();
 builder.Services.AddScoped<TechnoSurfaces.Services.DemoSession>();
 
 var app = builder.Build();
@@ -107,10 +100,10 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
-app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// CSS, scripts and the logo hold no data and must load on the sign-in page.
 app.MapStaticAssets().AllowAnonymous();
 
 app.MapControllerRoute(
