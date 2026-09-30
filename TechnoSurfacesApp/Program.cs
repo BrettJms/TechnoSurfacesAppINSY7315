@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TechnoSurfacesApp.Identity;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,7 +20,7 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
 builder.Services
     .AddIdentity<UserAccount, IdentityRole>(options =>
     {
-        // Length over composition rules, following NIST SP 800-63B (Task 1 §8.2).
+        // Length over composition rules, following NIST SP 800-63B (Task 1 8.2).
         options.Password.RequiredLength = 12;
         options.Password.RequireDigit = true;
         options.Password.RequireLowercase = true;
@@ -60,6 +62,22 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Every state-changing request must carry an antiforgery token (Task 1 8.8).
+// Applied globally so a new form cannot forget it.
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+
+// US-27: no page is reachable without an authenticated session. Anything not
+// explicitly marked [AllowAnonymous] requires sign-in, so a forgotten attribute
+// fails closed rather than open.
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSession(o =>
 {
@@ -88,7 +106,7 @@ app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
+app.MapStaticAssets().AllowAnonymous();
 
 app.MapControllerRoute(
     name: "default",

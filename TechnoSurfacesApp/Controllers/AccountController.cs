@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using TechnoSurfacesApp.Data;
 using TechnoSurfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TechnoSurfacesApp.Controllers;
 
@@ -15,9 +16,11 @@ public class AccountController : Controller
 
     public AccountController(DemoSession session) => _session = session;
 
+    [AllowAnonymous]
     [HttpGet]
     public IActionResult Login() => View();
 
+    [AllowAnonymous]
     [HttpPost]
     public IActionResult Login(string? email, string? password)
     {
@@ -47,9 +50,11 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+    [AllowAnonymous]
     [HttpGet]
     public IActionResult ForgotPassword() => View();
 
+    [AllowAnonymous]
     [HttpPost]
     [ActionName("ForgotPassword")]
     public IActionResult ForgotPasswordPost(string? email)
@@ -60,9 +65,11 @@ public class AccountController : Controller
     }
 
     /// <summary>Where an admin-invited user lands to set their first password.</summary>
+    [AllowAnonymous]
     [HttpGet]
     public IActionResult Activate() => View();
 
+    [AllowAnonymous]
     [HttpPost]
     [ActionName("Activate")]
     public IActionResult ActivatePost()
