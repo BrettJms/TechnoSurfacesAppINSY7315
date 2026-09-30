@@ -12,7 +12,9 @@ public class AuthDbContext : IdentityDbContext<UserAccount>
 {
     public const string Schema = "auth";
 
-    public AuthDbContext(DbContextOptions<AuthDbContext> options) : base(options) { }
+    public AuthDbContext(DbContextOptions<AuthDbContext> options) : base(options) { 
+    
+    }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
