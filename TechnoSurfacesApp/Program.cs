@@ -9,8 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Credential store (ASP.NET Core Identity). Fails at startup rather than running
 // without a database - the same fail-closed rule the pricing follows.
-var connectionString = builder.Configuration.GetConnectionString("TechnoSurfaces")
-    ?? throw new InvalidOperationException("Connection string 'TechnoSurfaces' is not configured.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(connectionString,
