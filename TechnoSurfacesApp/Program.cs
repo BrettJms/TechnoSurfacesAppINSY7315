@@ -88,6 +88,11 @@ builder.Services.AddSession(o =>
 builder.Services.AddScoped<TechnoSurfaces.Services.DemoSession>();
 
 var app = builder.Build();
+
+// Roles in every environment; test accounts on developer machines only.
+await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger,
+    includeDevelopmentAccounts: app.Environment.IsDevelopment());
+
 // Load the in-memory demo data (no database in the prototype).
 TechnoSurfacesApp.Data.Db.Initialise();
 
