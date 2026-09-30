@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TechnoSurfaces.Domain.Auditing;
+using TechnoSurfaces.Domain.Catalogue;
 using TechnoSurfaces.Domain.People;
 using TechnoSurfaces.Domain.Quoting;
 
@@ -121,6 +122,22 @@ public sealed class CostingLineConfiguration : IEntityTypeConfiguration<CostingL
         e.Property(x => x.Quantity).HasPrecision(18, 4);
         e.Property(x => x.SheetAreaM2).HasPrecision(18, 4);
         e.Property(x => x.DerivationFactor).HasPrecision(9, 4);
+
+        // Records which price row was used. Optional because rate lines carry no
+        // material. The price itself is copied onto the line, so this reference is
+        // for traceability and a later change to the row cannot alter the quote.
+        e.HasOne<MaterialPrice>()
+            .WithMany()
+            .HasForeignKey(x => x.MaterialPriceId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Optional for the same reason, inverted: material lines carry no rate item.
+        e.HasOne<RateItem>()
+            .WithMany()
+            .HasForeignKey(x => x.RateItemId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.NoAction);
 
         // A costing line is either a material line or a rate line.
         e.ToTable(t => t.HasCheckConstraint(

@@ -51,7 +51,7 @@ public sealed class QuoteCalculationService : IQuoteCalculationService
     private static void GuardAgainstUnpricedLines(QuoteVersion version)
     {
         var unpriced = version.CostingLines
-            .Where(l => string.IsNullOrWhiteSpace(l.PriceOrigin) || l.PriceOrigin == "unresolved")
+            .Where(l => string.IsNullOrWhiteSpace(l.PriceOrigin) || l.PriceOrigin == PriceResolution.UnresolvedOrigin)
             .ToList();
 
         if (unpriced.Count > 0)

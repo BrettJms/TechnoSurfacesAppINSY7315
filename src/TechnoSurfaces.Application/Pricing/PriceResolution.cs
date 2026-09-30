@@ -39,11 +39,18 @@ public sealed record PriceResolution
         ? _unitPrice
         : throw new PriceNotResolvedException(FailureReason ?? "The price could not be resolved.");
 
+    /// <summary>
+    /// The origin recorded against a price that did not resolve. Held as a constant
+    /// because the calculation engine rejects a line carrying it, and a magic string
+    /// duplicated in two places would let that guard stop working silently.
+    /// </summary>
+    public const string UnresolvedOrigin = "unresolved";
+
     public static PriceResolution Success(decimal unitPrice, string origin) =>
         new(true, unitPrice, origin, null);
 
     public static PriceResolution Failure(string reason) =>
-        new(false, 0m, "unresolved", reason);
+        new(false, 0m, UnresolvedOrigin, reason);
 }
 
 /// <summary>

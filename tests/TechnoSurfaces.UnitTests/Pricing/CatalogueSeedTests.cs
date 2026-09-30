@@ -97,6 +97,51 @@ public sealed class CatalogueSeedTests : IAsyncLifetime
             "These seeded colours cannot be priced: " + string.Join(", ", unresolved));
     }
 
+    [Theory]
+    [InlineData("Max on Top")]
+    [InlineData("Woodcentre CPT")]
+    public async Task Every_item_priced_sheet_resolves_to_the_whole_rand_figure_on_the_list(string supplierName)
+    {
+        // Every price on the Max on Top and Woodcentre lists is a whole rand amount.
+        // Those suppliers publish only a sheet price, so the per-square-metre figure
+        // is derived from it; if that derivation loses precision the sheet price
+        // comes back a cent or two out. Several of their sheet sizes have areas that
+        // do not round cleanly to four places, for example 3658 x 760 at 2,78008
+        // square metres, so this is the case where drift would appear.
+        var supplier = await _db.Suppliers.AsNoTracking().FirstAsync(s => s.Name == supplierName);
+
+        var rows = await _db.Colours
+            .AsNoTracking()
+            .Where(c => c.ProductLine!.SupplierId == supplier.Id)
+            .Select(c => new { c.Id, c.Name, c.ProductLineId })
+            .ToListAsync();
+
+        Assert.NotEmpty(rows);
+
+        var drifted = new List<string>();
+
+        foreach (var row in rows)
+        {
+            var sizeIds = await _db.SheetSizes
+                .AsNoTracking()
+                .Where(s => s.ProductLineId == row.ProductLineId)
+                .Select(s => s.Id)
+                .ToListAsync();
+
+            foreach (var sizeId in sizeIds)
+            {
+                var result = await _resolver.ResolveAsync(new PriceKey(row.Id, sizeId), Today);
+                if (!result.Resolved) continue;
+
+                if (result.UnitPrice != decimal.Truncate(result.UnitPrice))
+                    drifted.Add($"{row.Name} resolved to {result.UnitPrice}");
+            }
+        }
+
+        Assert.True(drifted.Count == 0,
+            "These prices did not round back to the published whole-rand figure: " + string.Join("; ", drifted));
+    }
+
     [Fact]
     public async Task A_staron_band_price_matches_the_published_sheet_price()
     {
