@@ -5,7 +5,8 @@ public enum SignInOutcome
 {
     Succeeded,
     InvalidCredentials,
-    LockedOut
+    LockedOut,
+    Deactivated
 }
 
 /// <summary>

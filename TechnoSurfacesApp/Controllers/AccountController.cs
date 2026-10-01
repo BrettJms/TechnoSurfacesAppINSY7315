@@ -45,9 +45,15 @@ public class AccountController : Controller
 
         // One message for an unknown email and a wrong password, so the form
         // cannot be used to discover which accounts exist.
-        ModelState.AddModelError(string.Empty, outcome == SignInOutcome.LockedOut
-            ? "Too many failed attempts. This account is temporarily locked - try again later or ask the Managing Director."
-            : "The email address or password is incorrect.");
+        ModelState.AddModelError(string.Empty, outcome switch
+        {
+            SignInOutcome.LockedOut =>
+                "Too many failed attempts. This account is temporarily locked - try again later or ask the Managing Director.",
+            SignInOutcome.Deactivated =>
+                "This account has been deactivated. Ask the Managing Director if you need access.",
+            _ =>
+                "The email address or password is incorrect."
+        });
 
         model.Password = string.Empty;
         return View(model);
