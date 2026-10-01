@@ -1,55 +1,80 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using TechnoSurfacesApp.Data;
-using TechnoSurfaces.Services;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TechnoSurfacesApp.Models;
+using TechnoSurfacesApp.Services;
 
 namespace TechnoSurfacesApp.Controllers;
 
 /// <summary>
-/// Authentication screens. There is deliberately NO registration action - the
-/// client confirmed all accounts are created by the MD and there is no public
-/// sign-up page. New users arrive via Activate, from an emailed invite link.
+/// Authentication screens. There is deliberately no registration action: all
+/// accounts are created by the Managing Director (US-26). The sign-in rules live
+/// in ISignInService; this controller only validates input and chooses the page.
 /// </summary>
 public class AccountController : Controller
 {
-    private readonly DemoSession _session;
+    private readonly ISignInService _signIn;
 
-    public AccountController(DemoSession session) => _session = session;
+    public AccountController(ISignInService signIn) => _signIn = signIn;
 
+    [AllowAnonymous]
     [HttpGet]
-    public IActionResult Login() => View();
-
-    [HttpPost]
-    public IActionResult Login(string? email, string? password)
+    public IActionResult Login(string? returnUrl = null)
     {
-        // No authentication in the prototype - match on email, fall back to the MD.
-        var user = Db.ActiveUsers.FirstOrDefault(u =>
-                       u.Email.Equals(email?.Trim() ?? "", StringComparison.OrdinalIgnoreCase))
-                   ?? Db.Users.First();
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectToAction("Dashboard", "Home");
 
-        _session.SignIn(user.Id);
-        return RedirectToAction("Dashboard", "Home");
+        return View(new LoginViewModel { ReturnUrl = returnUrl });
     }
 
-    /// <summary>Demo-only role switch from the top bar.</summary>
+    [AllowAnonymous]
     [HttpPost]
-    public IActionResult Switch(int userId)
+    public async Task<IActionResult> Login(LoginViewModel model)
     {
-        _session.SwitchTo(userId);
-        var back = Request.Headers.Referer.ToString();
-        return string.IsNullOrEmpty(back)
-            ? RedirectToAction("Dashboard", "Home")
-            : Redirect(back);
+        if (!ModelState.IsValid)
+            return View(model);
+
+        var outcome = await _signIn.SignInAsync(model.Email, model.Password, model.RememberMe);
+
+        if (outcome == SignInOutcome.Succeeded)
+        {
+            // Only return to a page on this site - blocks open-redirect attacks.
+            return Url.IsLocalUrl(model.ReturnUrl)
+                ? LocalRedirect(model.ReturnUrl!)
+                : RedirectToAction("Dashboard", "Home");
+        }
+
+        // One message for an unknown email and a wrong password, so the form
+        // cannot be used to discover which accounts exist.
+        ModelState.AddModelError(string.Empty, outcome switch
+        {
+            SignInOutcome.LockedOut =>
+                "Too many failed attempts. This account is temporarily locked - try again later or ask the Managing Director.",
+            SignInOutcome.Deactivated =>
+                "This account has been deactivated. Ask the Managing Director if you need access.",
+            _ =>
+                "The email address or password is incorrect."
+        });
+
+        model.Password = string.Empty;
+        return View(model);
     }
 
-    public IActionResult Logout()
+    /// <summary>POST only, so another site cannot sign a user out with a link or image tag.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Logout()
     {
-        _session.SignOut();
+        await _signIn.SignOutAsync();
         return RedirectToAction(nameof(Login));
     }
 
+    // Forgot-password and activation are rebuilt on Thursday (user admin).
+    // They remain the prototype's placeholder screens until then.
+
+    [AllowAnonymous]
     [HttpGet]
     public IActionResult ForgotPassword() => View();
 
+    [AllowAnonymous]
     [HttpPost]
     [ActionName("ForgotPassword")]
     public IActionResult ForgotPasswordPost(string? email)
@@ -59,10 +84,11 @@ public class AccountController : Controller
         return View("ForgotPassword");
     }
 
-    /// <summary>Where an admin-invited user lands to set their first password.</summary>
+    [AllowAnonymous]
     [HttpGet]
     public IActionResult Activate() => View();
 
+    [AllowAnonymous]
     [HttpPost]
     [ActionName("Activate")]
     public IActionResult ActivatePost()
