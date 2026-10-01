@@ -2,15 +2,21 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TechnoSurfaces.Infrastructure;
+using TechnoSurfaces.Infrastructure.Data;
+using TechnoSurfaces.Infrastructure.Data.Seed;
 using TechnoSurfacesApp.Identity;
 using TechnoSurfacesApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Credential store (ASP.NET Core Identity). Fails at startup rather than running
-// without a database - the same fail-closed rule the pricing follows.
+// One database, two contexts: the domain model (Kallan) and the credential store.
+// Fails at startup rather than running without a database - the same fail-closed
+// rule the pricing follows.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+
+builder.Services.AddTechnoSurfaces(connectionString);
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(connectionString,
@@ -82,11 +88,26 @@ builder.Services.AddScoped<TechnoSurfaces.Services.DemoSession>();
 
 var app = builder.Build();
 
+// Developer machines only: bring both databases up to date and load the real
+// catalogue and rate card, so a fresh clone runs with no manual steps.
+// Staging and production are migrated by the deployment pipeline, not at startup.
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var authDb = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+    var domainDb = scope.ServiceProvider.GetRequiredService<TechnoSurfacesDbContext>();
+
+    await authDb.Database.MigrateAsync();
+    await domainDb.Database.MigrateAsync();
+    await CatalogueSeeder.SeedAsync(domainDb);
+    await RateCardSeeder.SeedAsync(domainDb);
+}
+
 // Roles in every environment; test accounts on developer machines only.
 await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger,
     includeDevelopmentAccounts: app.Environment.IsDevelopment());
 
-// Load the in-memory demo data (no database in the prototype).
+// Load the in-memory demo data the prototype screens still read from.
 TechnoSurfacesApp.Data.Db.Initialise();
 
 // Configure the HTTP request pipeline.

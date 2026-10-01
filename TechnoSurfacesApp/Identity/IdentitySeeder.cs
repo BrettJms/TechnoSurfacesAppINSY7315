@@ -1,21 +1,30 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using TechnoSurfaces.Infrastructure.Data;
+using DomainRole = TechnoSurfaces.Domain.UserRole;
+using DomainUser = TechnoSurfaces.Domain.People.AppUser;
 
 namespace TechnoSurfacesApp.Identity;
 
 /// <summary>
 /// Creates the two roles in every environment, and - in Development only - the
-/// prototype's three users so the app can be signed in to locally.
+/// prototype's users so the app can be signed in to locally.
 ///
+/// Each development user exists twice by design: an Identity account (credentials)
+/// and a domain AppUser (role, active flag). The two share the same Id.
 /// The development password is read from user secrets, never from source control.
-/// Real accounts are created by the Managing Director through the Users screen.
 /// </summary>
 public static class IdentitySeeder
 {
-    private static readonly (string Email, string Role)[] DevelopmentAccounts =
+    private sealed record DevelopmentAccount(string Email, string FullName, string Role, bool IsActive);
+
+    private static readonly DevelopmentAccount[] DevelopmentAccounts =
     {
-        ("paul@technosurfaces.co.za",   Roles.ManagingDirector),
-        ("lerato@technosurfaces.co.za", Roles.Estimator),
-        ("devan@technosurfaces.co.za",  Roles.Estimator),
+        new("paul@technosurfaces.co.za",    "Paul Schluter",  Roles.ManagingDirector, IsActive: true),
+        new("lerato@technosurfaces.co.za",  "Lerato Mokoena", Roles.Estimator,        IsActive: true),
+        new("devan@technosurfaces.co.za",   "Devan Naidoo",   Roles.Estimator,        IsActive: true),
+
+        // Deactivated, so US-26 can be shown: correct password, sign-in still refused.
+        new("renaldo@technosurfaces.co.za", "Renaldo Fisher", Roles.Estimator,        IsActive: false),
     };
 
     public static async Task SeedAsync(
@@ -24,6 +33,7 @@ public static class IdentitySeeder
         using var scope = services.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<UserAccount>>();
+        var domain = scope.ServiceProvider.GetRequiredService<TechnoSurfacesDbContext>();
 
         foreach (var role in Roles.All)
         {
@@ -41,26 +51,44 @@ public static class IdentitySeeder
             return;
         }
 
-        foreach (var (email, role) in DevelopmentAccounts)
+        foreach (var dev in DevelopmentAccounts)
         {
-            if (await userManager.FindByEmailAsync(email) is not null)
-                continue;
-
-            var account = new UserAccount
+            var account = await userManager.FindByEmailAsync(dev.Email);
+            if (account is null)
             {
-                UserName = email,
-                Email = email,
-                EmailConfirmed = true,
-                MustChangePassword = false
-            };
+                account = new UserAccount
+                {
+                    UserName = dev.Email,
+                    Email = dev.Email,
+                    EmailConfirmed = true,
+                    MustChangePassword = false
+                };
 
-            var created = await userManager.CreateAsync(account, password);
-            if (!created.Succeeded)
-                throw new InvalidOperationException(
-                    $"Could not create development account {email}: " +
-                    string.Join("; ", created.Errors.Select(e => e.Description)));
+                var created = await userManager.CreateAsync(account, password);
+                if (!created.Succeeded)
+                    throw new InvalidOperationException(
+                        $"Could not create development account {dev.Email}: " +
+                        string.Join("; ", created.Errors.Select(e => e.Description)));
 
-            await userManager.AddToRoleAsync(account, role);
+                await userManager.AddToRoleAsync(account, dev.Role);
+            }
+
+            // The domain user shares the Identity account's Id.
+            if (await domain.Users.FindAsync(account.Id) is null)
+            {
+                domain.Users.Add(new DomainUser
+                {
+                    Id = account.Id,
+                    UserName = dev.Email,
+                    FullName = dev.FullName,
+                    Email = dev.Email,
+                    Role = dev.Role == Roles.ManagingDirector ? DomainRole.ManagingDirector : DomainRole.Estimator,
+                    IsActive = dev.IsActive,
+                    CreatedAtUtc = DateTime.UtcNow
+                });
+            }
         }
+
+        await domain.SaveChangesAsync();
     }
 }
