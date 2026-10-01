@@ -5,6 +5,7 @@ using TechnoSurfaces.Services;
 using TechnoSurfacesApp.Controllers;
 using TechnoSurfacesApp.Models;
 using static System.Collections.Specialized.BitVector32;
+using TechnoSurfacesApp.Identity;
 
 namespace TechnoSurfacesApp.Controllers;
 
@@ -17,7 +18,7 @@ public class CatalogueController : AppController
 {
     public CatalogueController(DemoSession session) : base(session) { }
 
-    public IActionResult Index(int? supplierId, int? productLineId,
+    public async Task<IActionResult> Index(int? supplierId, int? productLineId,
         int? thickness, string? status, string? q)
     {
         var list = Db.Catalogue.AsEnumerable();
@@ -61,7 +62,7 @@ public class CatalogueController : AppController
             Thickness = thickness,
             Status = status,
             Search = q,
-            CanEditPrices = Session.IsMd
+            CanEditPrices = await CanAsync(Policies.CanEditCatalogue)
         });
     }
 
@@ -69,7 +70,7 @@ public class CatalogueController : AppController
     /// Price maintenance. Restricted to the Managing Director - the client
     /// confirmed he is the only person who may change a material price.
     /// </summary>
-    public IActionResult Price(int id)
+    public async Task<IActionResult> Price(int id)
     {
         var entry = Db.GetEntry(id);
         if (entry is null) return RedirectToAction(nameof(Index));
@@ -91,7 +92,7 @@ public class CatalogueController : AppController
             Entry = entry,
             Supplier = Db.GetSupplier(entry.SupplierId)!,
             ProductLine = Db.GetProductLine(entry.ProductLineId)!,
-            CanEdit = Session.IsMd,
+            CanEdit = await CanAsync(Policies.CanEditCatalogue),
             UsedBy = usedBy,
             History = Db.Audit
                 .Where(a => a.EntityType == "Catalogue" &&
