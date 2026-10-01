@@ -1,0 +1,18 @@
+﻿@{
+    ViewData["Title"] = "Managing Director only";
+    ViewData["Crumb"] = "Access";
+}
+
+<div class="notice notice-info" role="status">
+    <svg class="ico"><use href="#i-lock" /></svg>
+    <div>
+        <strong>This page is for the Managing Director.</strong>
+        User accounts and the audit trail are managed by the Managing Director only.
+        If you need an account changed or want to know who changed a quote, ask the
+        Managing Director.
+    </div>
+</div>
+
+<p style="margin-top:18px">
+    <a class="btn btn-secondary" asp-controller="Home" asp-action="Dashboard">Back to dashboard</a>
+</p>

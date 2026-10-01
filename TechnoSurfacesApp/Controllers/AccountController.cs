@@ -67,6 +67,13 @@ public class AccountController : Controller
         return RedirectToAction(nameof(Login));
     }
 
+    /// <summary>
+    /// Shown instead of a 403 error when a signed-in user opens a page their role
+    /// cannot use (Task 1 2.4). It carries no data from the page they asked for.
+    /// </summary>
+    [HttpGet]
+    public IActionResult AccessDenied() => View();
+
     // Forgot-password and activation are rebuilt on Thursday (user admin).
     // They remain the prototype's placeholder screens until then.
 

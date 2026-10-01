@@ -60,6 +60,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
     options.LoginPath = "/Account/Login";
     options.LogoutPath = "/Account/Logout";
+    options.AccessDeniedPath = "/Account/AccessDenied";
 });
 
 // Re-validate the security stamp every minute, so a deactivated user's open
@@ -67,7 +68,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
     options.ValidationInterval = TimeSpan.FromMinutes(1));
 
-// Every state-changing request must carry an antiforgery token (Task 1 §8.8).
+// Every state-changing request must carry an antiforgery token (Task 1 8.8).
 // Applied globally so a new form cannot forget it.
 builder.Services.AddControllersWithViews(options =>
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
@@ -80,6 +81,13 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+
+    // The capability matrix (Task 1 2.2), defined once. Estimators may view all
+    // pricing - a confirmed client decision - so viewing needs no policy.
+    options.AddPolicy(Policies.CanApproveQuote, p => p.RequireRole(Roles.ManagingDirector));
+    options.AddPolicy(Policies.CanEditCatalogue, p => p.RequireRole(Roles.ManagingDirector));
+    options.AddPolicy(Policies.CanManageUsers, p => p.RequireRole(Roles.ManagingDirector));
+    options.AddPolicy(Policies.CanViewAuditTrail, p => p.RequireRole(Roles.ManagingDirector));
 });
 
 builder.Services.AddHttpContextAccessor();
