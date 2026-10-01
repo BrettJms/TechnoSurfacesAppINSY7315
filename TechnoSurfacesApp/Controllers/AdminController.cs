@@ -3,6 +3,8 @@ using TechnoSurfacesApp.Data;
 using TechnoSurfacesApp.Models;
 using TechnoSurfaces.Services;
 using static System.Collections.Specialized.BitVector32;
+using Microsoft.AspNetCore.Authorization;
+using TechnoSurfacesApp.Identity;
 
 namespace TechnoSurfacesApp.Controllers;
 
@@ -19,7 +21,7 @@ public class AdminController : AppController
     //  Rate card
     // ======================================================================
 
-    public IActionResult Rates()
+    public async Task<IActionResult> Rates()
     {
         ViewData["Title"] = "Rate card";
         ViewData["Page"] = "rates";
@@ -27,7 +29,7 @@ public class AdminController : AppController
 
         return View(new RatesVm
         {
-            CanEdit = Session.IsMd,
+            CanEdit = await CanAsync(Policies.CanEditCatalogue),
             Groups = RateGroupOrder
                 .Select(g => (g, Db.RatesIn(g)))
                 .Where(x => x.Item2.Count > 0)
@@ -45,6 +47,8 @@ public class AdminController : AppController
     //  Users
     // ======================================================================
 
+
+    [Authorize(Policy = Policies.CanManageUsers)]
     public IActionResult Users()
     {
         ViewData["Title"] = "Users";
@@ -63,19 +67,20 @@ public class AdminController : AppController
     //  Quotation terms - the standing content on every customer quotation
     // ======================================================================
 
-    public IActionResult Terms()
+    public async Task<IActionResult> Terms()
     {
         ViewData["Title"] = "Quotation terms";
         ViewData["Page"] = "terms";
         ViewData["Crumb"] = "Administration";
 
-        return View(new TermsVm { CanEdit = Session.IsMd });
+        return View(new TermsVm { CanEdit = await CanAsync(Policies.CanEditCatalogue) });
     }
 
     // ======================================================================
     //  Audit trail
     // ======================================================================
 
+    [Authorize(Policy = Policies.CanViewAuditTrail)]
     public IActionResult Audit(string? type, string? user, string? priceOnly)
     {
         var list = Db.Audit.AsEnumerable();
