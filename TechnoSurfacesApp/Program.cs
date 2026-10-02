@@ -7,6 +7,8 @@ using TechnoSurfaces.Infrastructure.Data;
 using TechnoSurfaces.Infrastructure.Data.Seed;
 using TechnoSurfacesApp.Identity;
 using TechnoSurfacesApp.Services;
+using TechnoSurfaces.Application.Auditing;
+using TechnoSurfaces.Infrastructure.Data.Auditing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,13 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddTechnoSurfaces(connectionString);
 
+// NFR-04: the audit interceptor is attached to the domain context here, so
+// Kallan's registration stays unchanged and no save can skip the audit trail.
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+builder.Services.AddScoped<AuditInterceptor>();
+builder.Services.ConfigureDbContext<TechnoSurfacesDbContext>((services, options) =>
+    options.AddInterceptors(services.GetRequiredService<AuditInterceptor>()));
+
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(connectionString,
         sql => sql.MigrationsHistoryTable("__EFMigrationsHistory", AuthDbContext.Schema)));
@@ -27,7 +36,7 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
 builder.Services
     .AddIdentity<UserAccount, IdentityRole>(options =>
     {
-        // Length over composition rules, following NIST SP 800-63B (Task 1 §8.2).
+        // Length over composition rules, following NIST SP 800-63B (Task 1 8.2).
         options.Password.RequiredLength = 12;
         options.Password.RequireDigit = true;
         options.Password.RequireLowercase = true;
