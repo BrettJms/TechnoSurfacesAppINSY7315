@@ -109,6 +109,18 @@ public sealed class QuoteRevisionTests
     }
 
     [Fact]
+    public void A_reopened_quote_is_no_longer_shown_as_approved()
+    {
+        var quote = SentQuoteWithLines(out _);
+        Assert.Equal("md", quote.ApprovedByUserId);
+
+        quote.Reopen("estimator");
+
+        Assert.Null(quote.ApprovedByUserId);
+        Assert.Null(quote.ApprovedAtUtc);
+    }
+
+    [Fact]
     public void A_draft_cannot_be_reopened()
     {
         var quote = new Quote("TS-REV-2", 1, 1, "estimator", new DateOnly(2026, 10, 2));
