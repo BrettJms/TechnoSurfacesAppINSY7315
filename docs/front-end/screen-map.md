@@ -6,7 +6,7 @@ The twenty screens from the Task 1 journey maps, who can use each one, and where
 
 ## Who can use each screen
 
-Six screens are for the Managing Director only. They do not appear in an estimator's side menu, and an estimator who opens one by its address sees a read only page that says who it is for, not an error page. The wording of that note is agreed with Amaan, who owns the authorisation rules.
+Six screens are for the Managing Director only. They do not appear in an estimator's side menu, and an estimator who opens one by its address sees a read only page that says who it is for, not an error page. The wording of that note is being agreed with Amaan, who owns the authorisation rules.
 
 | Group | Screen | Managing Director | Estimator |
 |---|---|---|---|
@@ -62,26 +62,37 @@ Kallan's price resolution and calculation engine are merged and sit underneath t
 
 ## Stories the screens deliver
 
-Only stories whose wording appears in the team's Task 2 files are listed with a meaning. The full text of every story is in the final Task 1 document.
+All 28 user stories from section 2.3 of the Task 1 document, with the acceptance criteria shortened, and the screen where each one is seen. The eight marked **Front end** are assigned to the front end in the Task 2 build plan.
 
-| Story | What it means | Screen |
-|---|---|---|
-| US-01 | Choose supplier, product line, colour and sheet size in turn, and the price fills in without typing | Costing sheet |
-| US-02 | See the sheet dimensions next to the price | Costing sheet |
-| US-03 | A price that cannot be found blocks the line and is never shown as zero | Costing sheet |
-| US-09 | Totals recalculate in full | Costing sheet |
-| US-11 | No cost price, supplier discount or markup on the customer quotation | Customer quotation |
-| US-12 | Standing terms come from one maintained place | Quotation terms, Customer quotation |
-| US-15 | A quotation is addressed to a contact and billed to a customer | Customers, Customer quotation |
-| US-16 | Submit a quote for approval | Costing sheet |
-| US-17 | See the quotes waiting for approval | Approval queue |
-| US-18 | Correct and approve in one step | Review quote |
-| US-19 | An estimator can see that their figures were changed | Review quote, Audit trail |
-| US-20 | Reopen a quote after a counter offer | Version history |
-| US-21 | Each revision is a new version | Version history |
-| US-23 | Only the Managing Director changes prices | Price editor, Rate card |
-| US-25 | Record the Pastel invoice against an accepted quote | Invoice record |
-| US-26 | No self registration, and a deactivated account cannot sign in | Sign in, Users |
-| US-27 | No page can be reached without signing in | Every screen |
+| Story | What the acceptance criteria require | Screen | Front end |
+|---|---|---|---|
+| US-01 | Choosing a supplier limits the materials, choosing a material limits the colours, and choosing a colour fills in the price without typing | Costing sheet | **Front end** |
+| US-02 | The length and width of the chosen sheet are shown next to the price | Costing sheet | **Front end** |
+| US-03 | A price that cannot be found shows a visible error and stops submission. No line is ever zero | Costing sheet | **Front end** |
+| US-04 | Entering a quantity on a rate line works out the line total straight away | Costing sheet | |
+| US-05 | Consumables come from the total area and transport from the sheet count, and both are shown as calculated | Costing sheet | **Front end** |
+| US-06 | Any rate or quantity can be changed on one quotation without changing the rate card | Costing sheet | |
+| US-07 | The markup is set per quotation and applies to the sub total only | Costing sheet | |
+| US-08 | A supplier discount on a material line lowers that line's cost before markup | Costing sheet | |
+| US-09 | The total square metres for the quotation is shown on the summary | Costing sheet | **Front end** |
+| US-10 | The customer quotation is made from the costing and its total matches the costing total | Customer quotation | |
+| US-11 | No cost price, supplier discount or markup appears anywhere on the customer document | Customer quotation | **Front end** |
+| US-12 | Standing terms, lead times, exclusions and warranties appear automatically and are kept in one place | Quotation terms, Customer quotation | |
+| US-13 | The warranty wording follows the brand quoted | Customer quotation | |
+| US-14 | Site and project are captured per quotation and printed on the document | New quote, Customer quotation | |
+| US-15 | Customers and contacts can be chosen. A quotation goes to a contact and is billed to a customer | New quote, Customers, Customer detail | |
+| US-16 | Submitting moves the quotation to pending and puts it in the approval queue | Costing sheet | |
+| US-17 | Pending quotations are listed with customer, project and value | Approval queue | |
+| US-18 | The Managing Director can edit any field on a pending quotation and approve it in the same action | Review quote | |
+| US-19 | The change, who made it and when are recorded and visible on the quotation | Review quote, Audit trail | |
+| US-20 | A sent quotation can be reopened, edited and resubmitted without becoming a separate quotation | Version history | |
+| US-21 | Every revision is a new version, and earlier versions stay readable and cannot be changed | Version history | |
+| US-22 | Prices are stored on the line when it is created, so a later catalogue change does not alter the quotation | Costing sheet, Version history | |
+| US-23 | Only the Managing Director can edit prices and rates, and every change is recorded | Price editor, Rate card | |
+| US-24 | A retired material cannot be chosen for a new quotation but still reads correctly on old ones | Material catalogue, Price editor | |
+| US-25 | The invoice number, date and amount can be recorded against an accepted quotation | Invoice record | |
+| US-26 | Accounts are created by the Managing Director, there is no self registration, and a deactivated account cannot sign in | Users, Sign in | |
+| US-27 | No page except sign in can be reached without signing in | Every screen | **Front end** |
+| US-28 | The system works over the internet in a laptop browser and stays usable at that screen size | Every screen | **Front end** |
 
-US-05 and US-28 are assigned to the front end, but their wording is not in the Task 2 files.
+US-28 only asks for a laptop. The Task 2 marking rubric asks for phones and tablets as well, so the front end is built and tested for all three.
