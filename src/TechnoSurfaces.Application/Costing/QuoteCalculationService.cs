@@ -79,8 +79,7 @@ public sealed class QuoteCalculationService : IQuoteCalculationService
                     line.SetDerivedQuantity(decimal.Round(totalArea * line.DerivationFactor, 4));
                     break;
                 case DerivationRule.FromSheetCount:
-                    // Silicon and sealing carries a factor of two; consumables and
-                    // transport carry one.
+                    // Silicon and sealing carries a factor of two: two per sheet.
                     line.SetDerivedQuantity(decimal.Round(totalSheets * line.DerivationFactor, 4));
                     break;
                 case DerivationRule.Entered:

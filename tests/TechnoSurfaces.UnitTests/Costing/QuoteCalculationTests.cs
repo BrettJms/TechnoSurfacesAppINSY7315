@@ -29,7 +29,8 @@ public class QuoteCalculationTests
             supplierDiscountPercent: discount);
 
     private static CostingLine Rate(decimal unitPrice, decimal quantity, bool belowTheLine = false,
-        DerivationRule derivation = DerivationRule.Entered, string description = "Fabrication") =>
+        DerivationRule derivation = DerivationRule.Entered, string description = "Fabrication",
+        decimal derivationFactor = 1m) =>
         CostingLine.ForRate(
             rateItemId: 1,
             description: description,
@@ -37,7 +38,8 @@ public class QuoteCalculationTests
             priceOrigin: "Rate card, effective 2026-01-01",
             quantity: quantity,
             isBelowTheLine: belowTheLine,
-            derivation: derivation);
+            derivation: derivation,
+            derivationFactor: derivationFactor);
 
     // ------------------------------------------------------------ NFR-01, US-03
 
@@ -136,8 +138,8 @@ public class QuoteCalculationTests
     {
         var version = NewVersion();
         version.AddCostingLine(Material(unitPrice: 4335.04m, quantity: 3m, sheetArea: 2.7968m));
-        var consumables = Rate(unitPrice: 50m, quantity: 0m, belowTheLine: true,
-            derivation: DerivationRule.FromTotalAreaM2, description: "Sandpaper and consumables");
+        var consumables = Rate(unitPrice: 55m, quantity: 0m,
+            derivation: DerivationRule.FromTotalAreaM2, description: "Sandpaper & consumables");
         version.AddCostingLine(consumables);
 
         var totals = _calculator.Calculate(version);
@@ -147,17 +149,35 @@ public class QuoteCalculationTests
     }
 
     [Fact]
-    public void Transport_takes_its_quantity_from_the_sheet_count()
+    public void Silicon_takes_two_per_sheet_from_the_sheet_count()
     {
+        // The client's costing sheet labels the line "silicon (2/sheet) + sealing".
         var version = NewVersion();
-        version.AddCostingLine(Material(unitPrice: 4335.04m, quantity: 4m));
-        var transport = Rate(unitPrice: 1050m, quantity: 0m, belowTheLine: true,
-            derivation: DerivationRule.FromSheetCount, description: "Transport");
-        version.AddCostingLine(transport);
+        version.AddCostingLine(Material(unitPrice: 4335.04m, quantity: 2.5m));
+        var silicon = Rate(unitPrice: 55m, quantity: 0m,
+            derivation: DerivationRule.FromSheetCount, description: "Silicon + sealing", derivationFactor: 2m);
+        version.AddCostingLine(silicon);
 
         _calculator.Calculate(version);
 
-        Assert.Equal(4m, transport.Quantity);
+        Assert.Equal(5m, silicon.Quantity);
+        Assert.Equal(275.00m, silicon.LineTotal());
+    }
+
+    [Fact]
+    public void Consumables_are_inside_the_sub_total_and_marked_up()
+    {
+        // Workbook: SUB TOTAL is the sum of every line above it, consumables
+        // included, so the markup applies to them.
+        var version = NewVersion(markupPercent: 10m);
+        version.AddCostingLine(Material(unitPrice: 1000m, quantity: 1m, sheetArea: 2m));
+        version.AddCostingLine(Rate(unitPrice: 55m, quantity: 0m,
+            derivation: DerivationRule.FromTotalAreaM2, description: "Sandpaper & consumables"));
+
+        var totals = _calculator.Calculate(version);
+
+        Assert.Equal(1110.00m, totals.SubTotalExVat);   // 1000 + 2 m2 x 55
+        Assert.Equal(111.00m, totals.MarkupAmount);
     }
 
     [Fact]
