@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using TechnoSurfaces.Application.Catalogue;
 using TechnoSurfaces.Application.Costing;
 using TechnoSurfaces.Application.Pricing;
+using TechnoSurfaces.Application.Quoting;
 using TechnoSurfaces.Infrastructure.Data;
 
 namespace TechnoSurfaces.Infrastructure;
@@ -31,6 +33,11 @@ public static class DependencyInjection
         services.AddScoped<IRateResolver, RateResolver>();
         services.AddScoped<IPriceHistory, PriceHistory>();
         services.AddScoped<IQuoteCalculationService, QuoteCalculationService>();
+
+        // The costing sheet: quotes, their priced lines and the cascading choice.
+        services.AddScoped<IQuoteRepository, QuoteRepository>();
+        services.AddScoped<ICostingSheetService, CostingSheetService>();
+        services.AddScoped<ICatalogueBrowser, CatalogueBrowser>();
 
         return services;
     }
