@@ -29,6 +29,7 @@ public static class DependencyInjection
 
         services.AddScoped<IPriceResolver, PriceResolver>();
         services.AddScoped<IRateResolver, RateResolver>();
+        services.AddScoped<IPriceHistory, PriceHistory>();
         services.AddScoped<IQuoteCalculationService, QuoteCalculationService>();
 
         return services;
