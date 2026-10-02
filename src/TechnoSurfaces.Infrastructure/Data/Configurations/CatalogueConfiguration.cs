@@ -152,6 +152,9 @@ public sealed class RateItemConfiguration : IEntityTypeConfiguration<RateItem>
             .OnDelete(DeleteBehavior.NoAction);
 
         e.HasIndex(x => x.Name).IsUnique();
+
+        // The rate card and the costing sheet list lines in this order.
+        e.HasIndex(x => new { x.Category, x.SortOrder });
     }
 }
 
