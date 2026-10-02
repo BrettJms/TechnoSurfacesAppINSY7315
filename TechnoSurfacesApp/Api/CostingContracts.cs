@@ -11,8 +11,20 @@ namespace TechnoSurfacesApp.Api;
 // Surfaces and must never be used for the customer quotation.
 
 /// <summary>
+/// The largest figures the database columns hold: quantities are decimal(18,4) and
+/// money is decimal(18,2). A larger value is refused as invalid input rather than
+/// failing when it is saved.
+/// </summary>
+internal static class ColumnLimits
+{
+    public const decimal Quantity = 99_999_999_999_999.9999m;
+    public const decimal Money = 9_999_999_999_999_999.99m;
+}
+
+/// <summary>
 /// The body of POST /api/quotes/{quoteId}/lines. "material" needs colourId and
-/// sheetSizeId; "rate" needs rateItemId.
+/// sheetSizeId; "rate" needs rateItemId. unitPrice is a price typed for this job,
+/// accepted only on a rate line whose item has no rate-card price.
 /// </summary>
 public sealed class AddLineRequest : IValidatableObject
 {
@@ -30,6 +42,8 @@ public sealed class AddLineRequest : IValidatableObject
 
     public decimal SupplierDiscountPercent { get; set; }
 
+    public decimal? UnitPrice { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (Type is not (Material or Rate))
@@ -44,11 +58,26 @@ public sealed class AddLineRequest : IValidatableObject
         if (Quantity < 0)
             yield return new("A quantity cannot be negative.", new[] { nameof(Quantity) });
 
+        if (Quantity > ColumnLimits.Quantity)
+            yield return new("This quantity is too large.", new[] { nameof(Quantity) });
+
         if (SupplierDiscountPercent is < 0 or > 100)
             yield return new("A discount must be between 0 and 100 per cent.", new[] { nameof(SupplierDiscountPercent) });
 
         if (Type == Rate && SupplierDiscountPercent != 0)
             yield return new("A supplier discount applies to a material line only.", new[] { nameof(SupplierDiscountPercent) });
+
+        // A material price always comes from the supplier's price list.
+        if (Type == Material && UnitPrice is not null)
+            yield return new("A material line is priced from the catalogue; a price cannot be typed for it.", new[] { nameof(UnitPrice) });
+
+        // A typed price is a real figure for the job. Zero is exactly the silent
+        // failure the system exists to prevent, so it is refused.
+        if (UnitPrice <= 0)
+            yield return new("A price entered on the quote must be greater than zero.", new[] { nameof(UnitPrice) });
+
+        if (UnitPrice > ColumnLimits.Money)
+            yield return new("This price is too large.", new[] { nameof(UnitPrice) });
     }
 }
 
@@ -78,6 +107,12 @@ public sealed class ChangeLineRequest : IValidatableObject
         if (UnitPrice < 0)
             yield return new("A unit price cannot be negative.", new[] { nameof(UnitPrice) });
 
+        if (Quantity > ColumnLimits.Quantity)
+            yield return new("This quantity is too large.", new[] { nameof(Quantity) });
+
+        if (UnitPrice > ColumnLimits.Money)
+            yield return new("This price is too large.", new[] { nameof(UnitPrice) });
+
         if (SupplierDiscountPercent is < 0 or > 100)
             yield return new("A discount must be between 0 and 100 per cent.", new[] { nameof(SupplierDiscountPercent) });
 
@@ -106,6 +141,9 @@ public sealed class ChangeCostingRequest : IValidatableObject
 
         if (TransportAmount < 0)
             yield return new("A transport amount cannot be negative.", new[] { nameof(TransportAmount) });
+
+        if (TransportAmount > ColumnLimits.Money)
+            yield return new("This transport amount is too large.", new[] { nameof(TransportAmount) });
     }
 }
 
