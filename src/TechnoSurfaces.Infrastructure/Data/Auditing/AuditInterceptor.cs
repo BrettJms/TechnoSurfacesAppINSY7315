@@ -7,6 +7,7 @@ using TechnoSurfaces.Application.Auditing;
 using TechnoSurfaces.Domain.Auditing;
 using TechnoSurfaces.Domain.Catalogue;
 using TechnoSurfaces.Domain.Quoting;
+using TechnoSurfaces.Domain.People;
 
 namespace TechnoSurfaces.Infrastructure.Data.Auditing;
 
@@ -28,7 +29,13 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
         typeof(MaterialPrice), typeof(RatePrice), typeof(Quote), typeof(QuoteVersion), typeof(CostingLine),
 
         // US-23/24: retiring a colour or a product line is a catalogue change too.
-        typeof(Colour), typeof(ProductLine)
+        typeof(Colour), typeof(ProductLine),
+
+        // US-23/24: retiring a colour or a product line is a catalogue change too.
+        typeof(Colour), typeof(ProductLine),
+
+        // US-26: creating, deactivating and reactivating an account.
+        typeof(AppUser)
     };
 
     private readonly ICurrentUser _currentUser;

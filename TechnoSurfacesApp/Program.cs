@@ -29,6 +29,7 @@ builder.Services.ConfigureDbContext<TechnoSurfacesDbContext>((services, options)
     options.AddInterceptors(services.GetRequiredService<AuditInterceptor>()));
 
 builder.Services.AddScoped<ICatalogueService, CatalogueService>();
+builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(connectionString,
