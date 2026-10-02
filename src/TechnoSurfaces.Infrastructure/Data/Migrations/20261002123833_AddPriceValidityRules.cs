@@ -55,8 +55,12 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
             // filtered unique indexes cover open-ended prices; these triggers cover
             // closed periods as well. Two prices overlap when each starts on or
             // before the day the other ends.
+            //
+            // Each trigger is created through EXEC because CREATE TRIGGER must be the
+            // first statement in a batch, and the idempotent script the pipeline
+            // generates wraps every migration in an IF block.
             migrationBuilder.Sql(@"
-CREATE TRIGGER dbo.TR_MaterialPrices_NoOverlap
+EXEC(N'CREATE TRIGGER dbo.TR_MaterialPrices_NoOverlap
 ON dbo.MaterialPrices
 AFTER INSERT, UPDATE
 AS
@@ -70,13 +74,13 @@ BEGIN
          AND p.SheetSizeId = i.SheetSizeId
          AND ((i.ColourId IS NOT NULL AND p.ColourId = i.ColourId)
            OR (i.PriceBandId IS NOT NULL AND p.PriceBandId = i.PriceBandId))
-         AND p.EffectiveFrom <= ISNULL(i.EffectiveTo, '9999-12-31')
-         AND i.EffectiveFrom <= ISNULL(p.EffectiveTo, '9999-12-31'))
-        THROW 51001, 'Two prices for the same material and sheet size would be in force on the same day. Close the current price before the new one starts.', 1;
-END");
+         AND p.EffectiveFrom <= ISNULL(i.EffectiveTo, ''9999-12-31'')
+         AND i.EffectiveFrom <= ISNULL(p.EffectiveTo, ''9999-12-31''))
+        THROW 51001, ''Two prices for the same material and sheet size would be in force on the same day. Close the current price before the new one starts.'', 1;
+END');");
 
             migrationBuilder.Sql(@"
-CREATE TRIGGER dbo.TR_RatePrices_NoOverlap
+EXEC(N'CREATE TRIGGER dbo.TR_RatePrices_NoOverlap
 ON dbo.RatePrices
 AFTER INSERT, UPDATE
 AS
@@ -89,10 +93,10 @@ BEGIN
           ON p.Id <> i.Id
          AND p.RateItemId = i.RateItemId
          AND ((p.SupplierId IS NULL AND i.SupplierId IS NULL) OR p.SupplierId = i.SupplierId)
-         AND p.EffectiveFrom <= ISNULL(i.EffectiveTo, '9999-12-31')
-         AND i.EffectiveFrom <= ISNULL(p.EffectiveTo, '9999-12-31'))
-        THROW 51002, 'Two rates for the same item would be in force on the same day. Close the current rate before the new one starts.', 1;
-END");
+         AND p.EffectiveFrom <= ISNULL(i.EffectiveTo, ''9999-12-31'')
+         AND i.EffectiveFrom <= ISNULL(p.EffectiveTo, ''9999-12-31''))
+        THROW 51002, ''Two rates for the same item would be in force on the same day. Close the current rate before the new one starts.'', 1;
+END');");
         }
 
         /// <inheritdoc />
