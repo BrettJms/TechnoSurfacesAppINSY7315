@@ -100,6 +100,46 @@ public sealed class CostingSheetServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task An_unpriced_rate_takes_a_price_typed_for_the_job()
+    {
+        await using var db = new TechnoSurfacesDbContext(_options);
+        var board = await db.RateItems.SingleAsync(r => r.Name == "Marine Ply 18mm");
+
+        var result = await ServiceOver(db).AddRateLineAsync(_quoteId, new AddRateLine(board.Id, 2m, UnitPrice: 950m));
+
+        Assert.Equal(CostingOutcome.Ok, result.Outcome);
+        Assert.Equal(950m, result.Line!.ResolvedUnitPrice);
+        Assert.Equal(CostingSheetService.EnteredOnQuoteOrigin, result.Line.PriceOrigin);
+        Assert.Equal(1900m, result.Totals!.SubTotalExVat);
+        Assert.Equal(1, await LineCountAsync());
+    }
+
+    [Fact]
+    public async Task A_typed_price_is_refused_for_an_item_with_a_rate_card_price()
+    {
+        await using var db = new TechnoSurfacesDbContext(_options);
+        var sanding = await db.RateItems.SingleAsync(r => r.Name == "Sanding time");
+
+        var result = await ServiceOver(db).AddRateLineAsync(_quoteId, new AddRateLine(sanding.Id, 2m, UnitPrice: 80m));
+
+        Assert.Equal(CostingOutcome.NotApplicable, result.Outcome);
+        Assert.Contains("R100.00", result.Problem);
+        Assert.Equal(0, await LineCountAsync());
+    }
+
+    [Fact]
+    public async Task An_unpriced_rate_without_a_typed_price_says_how_to_add_it()
+    {
+        await using var db = new TechnoSurfacesDbContext(_options);
+        var sink = await db.RateItems.SingleAsync(r => r.Name == "Sink / vanity");
+
+        var result = await ServiceOver(db).AddRateLineAsync(_quoteId, new AddRateLine(sink.Id, 1m));
+
+        Assert.Equal(CostingOutcome.PriceNotResolved, result.Outcome);
+        Assert.Contains("enter a price for this job", result.Problem);
+    }
+
+    [Fact]
     public async Task A_colour_with_no_price_at_that_size_adds_no_line()
     {
         await using var db = new TechnoSurfacesDbContext(_options);
@@ -166,7 +206,8 @@ public sealed class CostingSheetServiceTests : IAsyncLifetime
         await using (var setup = new TechnoSurfacesDbContext(_options))
         {
             var quote = await new QuoteRepository(setup).GetAsync(_quoteId);
-            quote!.Approve("md");
+            quote!.Submit();
+            quote.Approve("md");
             await setup.SaveChangesAsync();
         }
 

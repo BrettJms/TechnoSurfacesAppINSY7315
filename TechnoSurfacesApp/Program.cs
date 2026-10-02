@@ -152,6 +152,12 @@ await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger,
 TechnoSurfacesApp.Data.Db.Initialise();
 
 // Configure the HTTP request pipeline.
+
+// An unexpected error on /api is answered with a ProblemDetails body, not the HTML
+// error page the browser screens use, so the costing sheet's script can read it.
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"),
+    api => api.UseExceptionHandler());
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

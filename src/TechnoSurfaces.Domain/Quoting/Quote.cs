@@ -96,11 +96,25 @@ public class Quote
     /// Approves the quote and seals its current version, so what was approved is
     /// what is sent. Any correction by the Managing Director (US-18) is made before
     /// this call, while the version is still open.
+    ///
+    /// A Draft may be approved directly only by its own author: that is the
+    /// Managing Director approving their own quote. Anyone else's Draft must be
+    /// submitted and approved from the queue (Task 1 5.2.1). Who may approve at all
+    /// is the CanApproveQuote policy, so an estimator never reaches this call.
     /// </summary>
     public void Approve(string approvedByUserId)
     {
-        Status = QuoteLifecycle.Next(Status, QuoteTransition.Approve);
-        CurrentVersion?.Seal();
+        var version = CurrentVersion
+            ?? throw new InvalidOperationException("A quote with no version has nothing to approve.");
+
+        var next = QuoteLifecycle.Next(Status, QuoteTransition.Approve);
+
+        if (Status == QuoteStatus.Draft && approvedByUserId != CreatedByUserId)
+            throw new InvalidQuoteTransitionException(Status, QuoteTransition.Approve,
+                "A draft can be approved directly only by its author. Submit it for approval first.");
+
+        Status = next;
+        version.Seal();
         ApprovedByUserId = approvedByUserId;
         ApprovedAtUtc = DateTime.UtcNow;
     }
@@ -115,6 +129,10 @@ public class Quote
     /// Memento step: the current version is sealed and left as it is, and a new
     /// version starts as a copy of it, with every line keeping the price it was
     /// created with (US-21, US-22). The quote goes back to Draft.
+    ///
+    /// The earlier approval is cleared, because it approved the earlier version and
+    /// not this revision. The sealed version and the audit trail keep the record of
+    /// who approved what.
     /// </summary>
     public QuoteVersion Reopen(string reopenedByUserId)
     {
@@ -123,6 +141,8 @@ public class Quote
 
         Status = QuoteLifecycle.Next(Status, QuoteTransition.Reopen);
         current.Seal();
+        ApprovedByUserId = null;
+        ApprovedAtUtc = null;
 
         var next = current.CreateRevision(current.VersionNo + 1, reopenedByUserId);
         _versions.Add(next);

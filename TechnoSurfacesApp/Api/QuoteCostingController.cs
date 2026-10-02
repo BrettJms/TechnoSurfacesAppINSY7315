@@ -85,7 +85,7 @@ public sealed class QuoteCostingController : ControllerBase
             ? await _costing.AddMaterialLineAsync(quoteId,
                 new AddMaterialLine(request.ColourId!.Value, request.SheetSizeId!.Value, request.Quantity, request.SupplierDiscountPercent), ct)
             : await _costing.AddRateLineAsync(quoteId,
-                new AddRateLine(request.RateItemId!.Value, request.Quantity), ct);
+                new AddRateLine(request.RateItemId!.Value, request.Quantity, request.UnitPrice), ct);
 
         if (result.Outcome != CostingOutcome.Ok)
             return Failure(result, quoteId);
