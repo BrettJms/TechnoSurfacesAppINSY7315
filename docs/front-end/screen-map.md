@@ -49,14 +49,14 @@ Estimators can see every price, including cost prices. That is a decision the cl
 | Review quote | Correct and approve in one step, the changes made to the quote | Approval workflow and the audit trail | Morgan, Amaan | No |
 | Version history | Every version with its date, author and total | Quote versioning | Morgan | No |
 | Invoice record | Pastel invoice number, date and amount | Invoice record | Morgan | No |
-| Material catalogue | Suppliers, product lines, colours, sheet sizes and prices | The seeded catalogue | Kallan | Data yes, no read service yet |
-| Price editor | Change a price from a date without overwriting the old one | `IPriceHistory.SetMaterialPriceAsync` | Kallan | No, on `feature/price-resolution` |
+| Material catalogue | Suppliers, product lines, colours, sheet sizes and prices | `CatalogueService`, reading the seeded catalogue | Amaan | No. The catalogue data is merged, the service is not built yet |
+| Price editor | Change a price from a date without overwriting the old one | `CatalogueService`, which saves through Kallan's `IPriceHistory.SetMaterialPriceAsync` | Amaan, with Kallan's `IPriceHistory` underneath | No. `IPriceHistory` is merged, the service is not built yet |
 | Customers | Customer list | Customers and contacts | Morgan | No |
 | Customer detail | A customer with its contacts | Customers and contacts | Morgan | No |
-| Rate card | Rates, including the ones awaiting the client's figures | `IPriceHistory.SetRateAsync` and the seeded rate card | Kallan | Data yes, editing on `feature/price-resolution` |
+| Rate card | Rates, including the nine still awaiting the client's figures | `CatalogueService`, which saves through Kallan's `IPriceHistory.SetRateAsync` | Amaan, with Kallan's `IPriceHistory` underneath | No. The rate card and `IPriceHistory` are merged, the service is not built yet |
 | Users | List, create, deactivate, reactivate, reset password | User administration | Amaan | No |
 | Quotation terms | Standing terms held in one place | Quotation generation | Morgan | No |
-| Audit trail | Changes filtered by user, entity and date | Audit interceptor and user administration | Amaan | No, interceptor in pull request 9 |
+| Audit trail | Changes filtered by user, entity and date | Audit interceptor and user administration | Amaan | Partly. The audit interceptor is merged, the screen's data is not built yet |
 
 Kallan's price resolution and calculation engine are merged and sit underneath the costing sheet. The screen reaches them through Morgan's endpoints.
 
