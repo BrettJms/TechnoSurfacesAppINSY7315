@@ -96,11 +96,25 @@ public class Quote
     /// Approves the quote and seals its current version, so what was approved is
     /// what is sent. Any correction by the Managing Director (US-18) is made before
     /// this call, while the version is still open.
+    ///
+    /// A Draft may be approved directly only by its own author: that is the
+    /// Managing Director approving their own quote. Anyone else's Draft must be
+    /// submitted and approved from the queue (Task 1 5.2.1). Who may approve at all
+    /// is the CanApproveQuote policy, so an estimator never reaches this call.
     /// </summary>
     public void Approve(string approvedByUserId)
     {
-        Status = QuoteLifecycle.Next(Status, QuoteTransition.Approve);
-        CurrentVersion?.Seal();
+        var version = CurrentVersion
+            ?? throw new InvalidOperationException("A quote with no version has nothing to approve.");
+
+        var next = QuoteLifecycle.Next(Status, QuoteTransition.Approve);
+
+        if (Status == QuoteStatus.Draft && approvedByUserId != CreatedByUserId)
+            throw new InvalidQuoteTransitionException(Status, QuoteTransition.Approve,
+                "A draft can be approved directly only by its author. Submit it for approval first.");
+
+        Status = next;
+        version.Seal();
         ApprovedByUserId = approvedByUserId;
         ApprovedAtUtc = DateTime.UtcNow;
     }
