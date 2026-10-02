@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TechnoSurfaces.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using TechnoSurfaces.Infrastructure.Data;
 namespace TechnoSurfaces.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(TechnoSurfacesDbContext))]
-    partial class TechnoSurfacesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261002123058_AddRateItemSortOrder")]
+    partial class AddRateItemSortOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,32 +154,14 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
 
                     b.HasIndex("SheetSizeId");
 
-                    b.HasIndex("ColourId", "SheetSizeId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_MaterialPrices_OneOpenPricePerColour")
-                        .HasFilter("[ColourId] IS NOT NULL AND [EffectiveTo] IS NULL");
-
-                    b.HasIndex("PriceBandId", "SheetSizeId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_MaterialPrices_OneOpenPricePerBand")
-                        .HasFilter("[PriceBandId] IS NOT NULL AND [EffectiveTo] IS NULL");
-
                     b.HasIndex("ColourId", "SheetSizeId", "EffectiveFrom");
 
                     b.HasIndex("PriceBandId", "SheetSizeId", "EffectiveFrom");
 
                     b.ToTable("MaterialPrices", t =>
                         {
-                            t.HasTrigger("TR_MaterialPrices_NoOverlap");
-
                             t.HasCheckConstraint("CK_MaterialPrice_ColourOrBand", "([ColourId] IS NOT NULL AND [PriceBandId] IS NULL) OR ([ColourId] IS NULL AND [PriceBandId] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_MaterialPrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
-
-                            t.HasCheckConstraint("CK_MaterialPrice_Positive", "[PricePerSqm] > 0");
                         });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("TechnoSurfaces.Domain.Catalogue.PriceBand", b =>
@@ -333,23 +318,9 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.HasIndex("RateItemId", "SupplierId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_RatePrices_OneOpenRate")
-                        .HasFilter("[EffectiveTo] IS NULL");
-
                     b.HasIndex("RateItemId", "SupplierId", "EffectiveFrom");
 
-                    b.ToTable("RatePrices", t =>
-                        {
-                            t.HasTrigger("TR_RatePrices_NoOverlap");
-
-                            t.HasCheckConstraint("CK_RatePrice_NotNegative", "[Amount] >= 0");
-
-                            t.HasCheckConstraint("CK_RatePrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
-                        });
-
-                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
+                    b.ToTable("RatePrices");
                 });
 
             modelBuilder.Entity("TechnoSurfaces.Domain.Catalogue.SheetSize", b =>
@@ -566,18 +537,11 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                     b.Property<bool>("IsBelowTheLine")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsQuantityOverridden")
-                        .HasColumnType("bit");
-
                     b.Property<int>("LineType")
                         .HasColumnType("int");
 
                     b.Property<int?>("MaterialPriceId")
                         .HasColumnType("int");
-
-                    b.Property<decimal?>("OverriddenUnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("PriceOrigin")
                         .IsRequired()
@@ -732,14 +696,6 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<string>("CustomerReference")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("DeliveryAddress")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
                     b.Property<DateOnly>("IssueDate")
                         .HasColumnType("date");
 
@@ -801,10 +757,6 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
 
                     b.Property<int>("QuoteId")
                         .HasColumnType("int");
-
-                    b.Property<decimal>("TransportAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("VatRate")
                         .HasPrecision(5, 4)

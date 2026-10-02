@@ -52,6 +52,13 @@ public class QuoteVersion
     /// </summary>
     public decimal VatRate { get; private set; }
 
+    /// <summary>
+    /// Transport: the petrol and delivery amount the Managing Director types per
+    /// job, based on the trips the job needs. Cost recovery, so it sits below the
+    /// markup line with the cut-out charges. Not on the rate card.
+    /// </summary>
+    public decimal TransportAmount { get; private set; }
+
     /// <summary>Once sealed the version is a read-only record.</summary>
     public bool IsSealed { get; private set; }
 
@@ -84,6 +91,47 @@ public class QuoteVersion
         MarkupPercent = markupPercent;
     }
 
+    public void SetTransportAmount(decimal amount)
+    {
+        EnsureUnsealed();
+        if (amount < 0)
+            throw new ArgumentOutOfRangeException(nameof(amount), "A transport amount cannot be negative.");
+        TransportAmount = amount;
+    }
+
+    /// <summary>
+    /// Changes a quantity on this quote. On a derived line, such as silicon at two
+    /// per sheet, the typed figure replaces the derived one until it is restored.
+    /// </summary>
+    public void ChangeQuantity(CostingLine line, decimal quantity) =>
+        Change(line).ChangeQuantity(quantity);
+
+    /// <summary>Returns a derived line to the quantity the calculator works out.</summary>
+    public void RestoreDerivedQuantity(CostingLine line) =>
+        Change(line).RestoreDerivedQuantity();
+
+    /// <summary>
+    /// Charges a line at a different rate on this quote only (US-06). The rate
+    /// card is not changed and the catalogue price stays on the line.
+    /// </summary>
+    public void OverrideUnitPrice(CostingLine line, decimal unitPrice) =>
+        Change(line).OverrideUnitPrice(unitPrice);
+
+    public void ClearPriceOverride(CostingLine line) =>
+        Change(line).ClearPriceOverride();
+
+    /// <summary>A discount received from the supplier on a material line (US-08).</summary>
+    public void ChangeSupplierDiscount(CostingLine line, decimal supplierDiscountPercent) =>
+        Change(line).ChangeSupplierDiscount(supplierDiscountPercent);
+
+    private CostingLine Change(CostingLine line)
+    {
+        EnsureUnsealed();
+        if (!_costingLines.Contains(line))
+            throw new InvalidOperationException($"{line.Description} is not a line on version {VersionNo}.");
+        return line;
+    }
+
     /// <summary>
     /// Closes the version. Called when the quote is submitted or issued. After this
     /// the snapshot cannot change.
@@ -107,9 +155,12 @@ public class QuoteVersion
     public decimal MarkupAmount() =>
         Round(SubTotalExVat() * MarkupPercent / 100m);
 
-    /// <summary>Below-the-line items are cost recovery and are not marked up.</summary>
+    /// <summary>
+    /// Below-the-line items are cost recovery and are not marked up: the cut-out
+    /// and groove charges, and transport.
+    /// </summary>
     public decimal BelowTheLineTotal() =>
-        Round(_costingLines.Where(l => l.IsBelowTheLine).Sum(l => l.LineTotal()));
+        Round(_costingLines.Where(l => l.IsBelowTheLine).Sum(l => l.LineTotal()) + TransportAmount);
 
     public decimal TotalExVat() =>
         Round(SubTotalExVat() + MarkupAmount() + BelowTheLineTotal());

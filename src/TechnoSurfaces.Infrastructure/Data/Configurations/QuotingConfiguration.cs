@@ -60,6 +60,8 @@ public sealed class QuoteConfiguration : IEntityTypeConfiguration<Quote>
         e.Property(x => x.Reference).HasMaxLength(40).IsRequired();
         e.Property(x => x.Site).HasMaxLength(200);
         e.Property(x => x.Project).HasMaxLength(200);
+        e.Property(x => x.CustomerReference).HasMaxLength(100);
+        e.Property(x => x.DeliveryAddress).HasMaxLength(300);
         e.Property(x => x.CreatedByUserId).HasMaxLength(450).IsRequired();
         e.Property(x => x.ApprovedByUserId).HasMaxLength(450);
 
@@ -90,6 +92,7 @@ public sealed class QuoteVersionConfiguration : IEntityTypeConfiguration<QuoteVe
         e.Property(x => x.CreatedByUserId).HasMaxLength(450).IsRequired();
         e.Property(x => x.MarkupPercent).HasPrecision(5, 2);
         e.Property(x => x.VatRate).HasPrecision(5, 4);
+        e.Property(x => x.TransportAmount).HasPrecision(18, 2);
 
         e.HasMany(x => x.CostingLines)
             .WithOne()
@@ -116,6 +119,10 @@ public sealed class CostingLineConfiguration : IEntityTypeConfiguration<CostingL
         e.Property(x => x.PriceOrigin).HasMaxLength(400).IsRequired();
         e.Property(x => x.ResolvedUnitPrice).HasPrecision(18, 2);
         e.Property(x => x.SupplierDiscountPercent).HasPrecision(5, 2);
+        e.Property(x => x.OverriddenUnitPrice).HasPrecision(18, 2);
+        e.Ignore(x => x.UnitPrice);
+        e.Ignore(x => x.HasPriceOverride);
+        e.Ignore(x => x.IsDerived);
 
         // Not an integer: Woodcentre quote stock in half sheets, and area-derived
         // quantities are fractional.

@@ -122,15 +122,37 @@ public sealed class MaterialPriceConfiguration : IEntityTypeConfiguration<Materi
             .HasForeignKey(x => x.SheetSizeId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        // A price belongs to a colour or to a band, never to both and never to
-        // neither. Three suppliers price by band, two by item.
-        e.ToTable(t => t.HasCheckConstraint(
-            "CK_MaterialPrice_ColourOrBand",
-            "([ColourId] IS NOT NULL AND [PriceBandId] IS NULL) OR ([ColourId] IS NULL AND [PriceBandId] IS NOT NULL)"));
+        e.ToTable(t =>
+        {
+            // A price belongs to a colour or to a band, never to both and never to
+            // neither. Three suppliers price by band, two by item.
+            t.HasCheckConstraint(
+                "CK_MaterialPrice_ColourOrBand",
+                "([ColourId] IS NOT NULL AND [PriceBandId] IS NULL) OR ([ColourId] IS NULL AND [PriceBandId] IS NOT NULL)");
+
+            // A price of zero is the failure the system exists to remove.
+            t.HasCheckConstraint("CK_MaterialPrice_Positive", "[PricePerSqm] > 0");
+            t.HasCheckConstraint("CK_MaterialPrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
+
+            // Rejects two prices for the same key in force on the same day. Created
+            // in the migration; declared here so EF Core does not use an OUTPUT
+            // clause, which SQL Server refuses on a table with a trigger.
+            t.HasTrigger(PriceTriggers.MaterialPriceNoOverlap);
+        });
 
         // Supports every price resolution the system performs.
         e.HasIndex(x => new { x.ColourId, x.SheetSizeId, x.EffectiveFrom });
         e.HasIndex(x => new { x.PriceBandId, x.SheetSizeId, x.EffectiveFrom });
+
+        // At most one open-ended price per key. The trigger covers closed periods.
+        e.HasIndex(x => new { x.ColourId, x.SheetSizeId })
+            .IsUnique()
+            .HasFilter("[ColourId] IS NOT NULL AND [EffectiveTo] IS NULL")
+            .HasDatabaseName("UX_MaterialPrices_OneOpenPricePerColour");
+        e.HasIndex(x => new { x.PriceBandId, x.SheetSizeId })
+            .IsUnique()
+            .HasFilter("[PriceBandId] IS NOT NULL AND [EffectiveTo] IS NULL")
+            .HasDatabaseName("UX_MaterialPrices_OneOpenPricePerBand");
     }
 }
 
@@ -152,6 +174,9 @@ public sealed class RateItemConfiguration : IEntityTypeConfiguration<RateItem>
             .OnDelete(DeleteBehavior.NoAction);
 
         e.HasIndex(x => x.Name).IsUnique();
+
+        // The rate card and the costing sheet list lines in this order.
+        e.HasIndex(x => new { x.Category, x.SortOrder });
     }
 }
 
@@ -174,6 +199,28 @@ public sealed class RatePriceConfiguration : IEntityTypeConfiguration<RatePrice>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
 
+        e.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_RatePrice_NotNegative", "[Amount] >= 0");
+            t.HasCheckConstraint("CK_RatePrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
+            t.HasTrigger(PriceTriggers.RatePriceNoOverlap);
+        });
+
         e.HasIndex(x => new { x.RateItemId, x.SupplierId, x.EffectiveFrom });
+
+        // At most one open-ended rate per item and supplier. A null supplier is the
+        // general rate; SQL Server treats nulls as equal in a unique index, so there
+        // is also only one open general rate per item.
+        e.HasIndex(x => new { x.RateItemId, x.SupplierId })
+            .IsUnique()
+            .HasFilter("[EffectiveTo] IS NULL")
+            .HasDatabaseName("UX_RatePrices_OneOpenRate");
     }
+}
+
+/// <summary>Names of the triggers created in the AddPriceValidityRules migration.</summary>
+public static class PriceTriggers
+{
+    public const string MaterialPriceNoOverlap = "TR_MaterialPrices_NoOverlap";
+    public const string RatePriceNoOverlap = "TR_RatePrices_NoOverlap";
 }
