@@ -59,7 +59,8 @@ builder.Services
         options.SignIn.RequireConfirmedAccount = false;
     })
     .AddEntityFrameworkStores<AuthDbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddClaimsPrincipalFactory<AppClaimsPrincipalFactory>();
 
 // Session cookie hardening. Estimators work from laptops on networks we do not
 // control (NFR-12), so the session has a short idle timeout.
@@ -81,11 +82,14 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
     options.ValidationInterval = TimeSpan.FromMinutes(1));
 
-// Every state-changing request must carry an antiforgery token (Task 1 8.8).
-// Applied globally so a new form cannot forget it.
+// Every state-changing request must carry an antiforgery token (Task 1 8.8), and a
+// user on a temporary password can reach nothing but "Set your password" (8.2).
+// Both are global, so a new page cannot forget them.
 builder.Services.AddControllersWithViews(options =>
-    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
-
+{
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    options.Filters.Add<MustChangePasswordFilter>();
+});
 // US-27: no page is reachable without an authenticated session. Anything not
 // explicitly marked [AllowAnonymous] requires sign-in, so a forgotten attribute
 // fails closed rather than open.
