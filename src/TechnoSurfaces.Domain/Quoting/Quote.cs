@@ -47,6 +47,14 @@ public class Quote
     public string? Site { get; set; }
     public string? Project { get; set; }
 
+    /// <summary>
+    /// The customer's own reference for the job, printed as "Your ref" on the
+    /// quotation and carried to the Pastel invoice.
+    /// </summary>
+    public string? CustomerReference { get; set; }
+
+    public string? DeliveryAddress { get; set; }
+
     public DateOnly IssueDate { get; private set; }
     public DateOnly ValidUntil { get; private set; }
 
