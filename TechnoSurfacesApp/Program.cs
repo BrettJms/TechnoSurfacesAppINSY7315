@@ -138,6 +138,10 @@ if (app.Environment.IsDevelopment())
     await domainDb.Database.MigrateAsync();
     await CatalogueSeeder.SeedAsync(domainDb);
     await RateCardSeeder.SeedAsync(domainDb);
+
+    // RA Woodcraft, the real customer from invoice IN114317. Staging and production
+    // need the same call once they seed at start-up.
+    await CustomerSeeder.SeedAsync(domainDb);
 }
 
 // Roles in every environment; test accounts on developer machines only.
