@@ -111,6 +111,25 @@ public class Quote
     public void MarkAccepted() => Status = QuoteLifecycle.Next(Status, QuoteTransition.Accept);
 
     /// <summary>
+    /// Reopens a sent or accepted quote after a counter-offer (US-20). This is the
+    /// Memento step: the current version is sealed and left as it is, and a new
+    /// version starts as a copy of it, with every line keeping the price it was
+    /// created with (US-21, US-22). The quote goes back to Draft.
+    /// </summary>
+    public QuoteVersion Reopen(string reopenedByUserId)
+    {
+        var current = CurrentVersion
+            ?? throw new InvalidOperationException("A quote with no version cannot be reopened.");
+
+        Status = QuoteLifecycle.Next(Status, QuoteTransition.Reopen);
+        current.Seal();
+
+        var next = current.CreateRevision(current.VersionNo + 1, reopenedByUserId);
+        _versions.Add(next);
+        return next;
+    }
+
+    /// <summary>
     /// Moves the quote to Expired once its validity period has passed. Returns
     /// false, and changes nothing, while the quote is still valid on
     /// <paramref name="today"/> or is in a status that cannot expire.
