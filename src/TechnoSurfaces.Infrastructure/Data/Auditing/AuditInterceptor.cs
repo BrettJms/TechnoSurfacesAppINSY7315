@@ -25,7 +25,10 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
 
     private static readonly HashSet<Type> AuditedTypes = new()
     {
-        typeof(MaterialPrice), typeof(RatePrice), typeof(Quote), typeof(QuoteVersion), typeof(CostingLine)
+        typeof(MaterialPrice), typeof(RatePrice), typeof(Quote), typeof(QuoteVersion), typeof(CostingLine),
+
+        // US-23/24: retiring a colour or a product line is a catalogue change too.
+        typeof(Colour), typeof(ProductLine)
     };
 
     private readonly ICurrentUser _currentUser;

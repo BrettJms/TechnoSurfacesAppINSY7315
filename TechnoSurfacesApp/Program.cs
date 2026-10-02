@@ -9,6 +9,7 @@ using TechnoSurfacesApp.Identity;
 using TechnoSurfacesApp.Services;
 using TechnoSurfaces.Application.Auditing;
 using TechnoSurfaces.Infrastructure.Data.Auditing;
+using TechnoSurfaces.Application.Catalogue;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +27,8 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddScoped<AuditInterceptor>();
 builder.Services.ConfigureDbContext<TechnoSurfacesDbContext>((services, options) =>
     options.AddInterceptors(services.GetRequiredService<AuditInterceptor>()));
+
+builder.Services.AddScoped<ICatalogueService, CatalogueService>();
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(connectionString,
