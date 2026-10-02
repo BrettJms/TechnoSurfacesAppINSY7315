@@ -75,6 +75,42 @@ public sealed class QuoteLifecycleTests
     }
 
     [Fact]
+    public void The_managing_directors_own_draft_is_approved_directly()
+    {
+        var quote = new Quote("TS-5", 1, 1, "md", new DateOnly(2026, 10, 2));
+        var version = quote.StartNewVersion("md", 40m);
+
+        quote.Approve("md");
+
+        Assert.Equal(QuoteStatus.Approved, quote.Status);
+        Assert.True(version.IsSealed);
+    }
+
+    [Fact]
+    public void An_estimators_draft_cannot_skip_the_approval_queue()
+    {
+        var quote = new Quote("TS-6", 1, 1, "estimator", new DateOnly(2026, 10, 2));
+        var version = quote.StartNewVersion("estimator", 40m);
+
+        var ex = Assert.Throws<InvalidQuoteTransitionException>(() => quote.Approve("md"));
+
+        Assert.Equal(QuoteStatus.Draft, ex.From);
+        Assert.Equal(QuoteStatus.Draft, quote.Status);
+        Assert.False(version.IsSealed);
+        Assert.Null(quote.ApprovedByUserId);
+    }
+
+    [Fact]
+    public void A_quote_with_no_version_cannot_be_approved()
+    {
+        var quote = new Quote("TS-7", 1, 1, "md", new DateOnly(2026, 10, 2));
+
+        Assert.Throws<InvalidOperationException>(() => quote.Approve("md"));
+        Assert.Equal(QuoteStatus.Draft, quote.Status);
+        Assert.Null(quote.ApprovedByUserId);
+    }
+
+    [Fact]
     public void A_pending_quote_stays_open_for_correction_until_approved()
     {
         var quote = new Quote("TS-4", 1, 1, "estimator", new DateOnly(2026, 10, 2));

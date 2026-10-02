@@ -59,7 +59,13 @@ public static class QuoteLifecycle
 public sealed class InvalidQuoteTransitionException : InvalidOperationException
 {
     public InvalidQuoteTransitionException(QuoteStatus from, QuoteTransition via)
-        : base($"A quote that is {from} cannot be {Describe(via)}.")
+        : this(from, via, $"A quote that is {from} cannot be {Describe(via)}.")
+    {
+    }
+
+    /// <summary>For a move the table allows in general but not in this case.</summary>
+    public InvalidQuoteTransitionException(QuoteStatus from, QuoteTransition via, string message)
+        : base(message)
     {
         From = from;
         Via = via;
