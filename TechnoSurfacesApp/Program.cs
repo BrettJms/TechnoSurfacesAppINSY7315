@@ -9,6 +9,7 @@ using TechnoSurfacesApp.Identity;
 using TechnoSurfacesApp.Services;
 using TechnoSurfaces.Application.Auditing;
 using TechnoSurfaces.Infrastructure.Data.Auditing;
+using TechnoSurfacesApp.Platform;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -102,6 +103,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISignInService, SignInService>();
 builder.Services.AddScoped<TechnoSurfaces.Services.DemoSession>();
+builder.Services.AddPlatformHealthChecks();
+
 
 var app = builder.Build();
 
@@ -143,6 +146,8 @@ app.UseAuthorization();
 
 // CSS, scripts and the logo hold no data and must load on the sign-in page.
 app.MapStaticAssets().AllowAnonymous();
+app.MapPlatformHealthChecks();
+
 
 app.MapControllerRoute(
     name: "default",
