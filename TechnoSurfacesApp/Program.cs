@@ -111,11 +111,12 @@ var app = builder.Build();
 // a developer machine, and in Azure when Database__MigrateOnStartup is true.
 await DatabaseStartup.InitialiseAsync(app);
 
-// Roles in every environment. The demo accounts on developer machines, and in an
-// Azure environment only where Seed__DemoAccounts is true.
+// Roles in every environment. The demo accounts on developer machines, and in a
+// non-production Azure environment only where Seed__DemoAccounts is true. They are
+// never created in Production, whatever the setting says.
 await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger,
     includeDevelopmentAccounts: app.Environment.IsDevelopment()
-        || app.Configuration.GetValue<bool>("Seed:DemoAccounts"));
+        || (app.Configuration.GetValue<bool>("Seed:DemoAccounts") && !app.Environment.IsProduction()));
 
 // Load the in-memory demo data the prototype screens still read from.
 TechnoSurfacesApp.Data.Db.Initialise();
