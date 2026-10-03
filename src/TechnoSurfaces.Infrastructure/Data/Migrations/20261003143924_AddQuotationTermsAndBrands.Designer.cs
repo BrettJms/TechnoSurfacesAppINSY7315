@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TechnoSurfaces.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using TechnoSurfaces.Infrastructure.Data;
 namespace TechnoSurfaces.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(TechnoSurfacesDbContext))]
-    partial class TechnoSurfacesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261003143924_AddQuotationTermsAndBrands")]
+    partial class AddQuotationTermsAndBrands
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -381,9 +384,9 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                         {
                             t.HasTrigger("TR_RatePrices_NoOverlap");
 
-                            t.HasCheckConstraint("CK_RatePrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
+                            t.HasCheckConstraint("CK_RatePrice_NotNegative", "[Amount] >= 0");
 
-                            t.HasCheckConstraint("CK_RatePrice_Positive", "[Amount] > 0");
+                            t.HasCheckConstraint("CK_RatePrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -657,10 +660,6 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                     b.ToTable("CostingLines", t =>
                         {
                             t.HasCheckConstraint("CK_CostingLine_MaterialOrRate", "([MaterialPriceId] IS NOT NULL AND [RateItemId] IS NULL) OR ([MaterialPriceId] IS NULL AND [RateItemId] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_CostingLine_OverridePositive", "[OverriddenUnitPrice] IS NULL OR [OverriddenUnitPrice] > 0");
-
-                            t.HasCheckConstraint("CK_CostingLine_PricePositive", "[ResolvedUnitPrice] > 0");
                         });
                 });
 
@@ -894,69 +893,6 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                     b.ToTable("QuoteVersions");
                 });
 
-            modelBuilder.Entity("TechnoSurfaces.Domain.Quoting.QuoteVersionTerm", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("QuoteVersionId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Section")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Text")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuoteVersionId", "Section", "SortOrder");
-
-                    b.ToTable("QuoteVersionTerms");
-                });
-
-            modelBuilder.Entity("TechnoSurfaces.Domain.Quoting.QuoteVersionWarranty", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Brand")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<string>("MaterialWarranty")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
-                    b.Property<int>("QuoteVersionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("WorkmanshipWarranty")
-                        .IsRequired()
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QuoteVersionId", "Brand")
-                        .IsUnique();
-
-                    b.ToTable("QuoteVersionWarranties");
-                });
-
             modelBuilder.Entity("TechnoSurfaces.Domain.Catalogue.Colour", b =>
                 {
                     b.HasOne("TechnoSurfaces.Domain.Catalogue.PriceBand", "PriceBand")
@@ -1156,24 +1092,6 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                     b.Navigation("Quote");
                 });
 
-            modelBuilder.Entity("TechnoSurfaces.Domain.Quoting.QuoteVersionTerm", b =>
-                {
-                    b.HasOne("TechnoSurfaces.Domain.Quoting.QuoteVersion", null)
-                        .WithMany("Terms")
-                        .HasForeignKey("QuoteVersionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("TechnoSurfaces.Domain.Quoting.QuoteVersionWarranty", b =>
-                {
-                    b.HasOne("TechnoSurfaces.Domain.Quoting.QuoteVersion", null)
-                        .WithMany("Warranties")
-                        .HasForeignKey("QuoteVersionId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("TechnoSurfaces.Domain.Catalogue.Brand", b =>
                 {
                     b.Navigation("ProductLines");
@@ -1218,10 +1136,6 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                     b.Navigation("CostingLines");
 
                     b.Navigation("QuotationLines");
-
-                    b.Navigation("Terms");
-
-                    b.Navigation("Warranties");
                 });
 #pragma warning restore 612, 618
         }

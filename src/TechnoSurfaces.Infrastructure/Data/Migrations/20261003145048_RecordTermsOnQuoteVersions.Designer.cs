@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TechnoSurfaces.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using TechnoSurfaces.Infrastructure.Data;
 namespace TechnoSurfaces.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(TechnoSurfacesDbContext))]
-    partial class TechnoSurfacesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261003145048_RecordTermsOnQuoteVersions")]
+    partial class RecordTermsOnQuoteVersions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -381,9 +384,9 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                         {
                             t.HasTrigger("TR_RatePrices_NoOverlap");
 
-                            t.HasCheckConstraint("CK_RatePrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
+                            t.HasCheckConstraint("CK_RatePrice_NotNegative", "[Amount] >= 0");
 
-                            t.HasCheckConstraint("CK_RatePrice_Positive", "[Amount] > 0");
+                            t.HasCheckConstraint("CK_RatePrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
                         });
 
                     b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
@@ -657,10 +660,6 @@ namespace TechnoSurfaces.Infrastructure.Data.Migrations
                     b.ToTable("CostingLines", t =>
                         {
                             t.HasCheckConstraint("CK_CostingLine_MaterialOrRate", "([MaterialPriceId] IS NOT NULL AND [RateItemId] IS NULL) OR ([MaterialPriceId] IS NULL AND [RateItemId] IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_CostingLine_OverridePositive", "[OverriddenUnitPrice] IS NULL OR [OverriddenUnitPrice] > 0");
-
-                            t.HasCheckConstraint("CK_CostingLine_PricePositive", "[ResolvedUnitPrice] > 0");
                         });
                 });
 
