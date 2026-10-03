@@ -18,8 +18,8 @@ namespace TechnoSurfaces.Infrastructure.Data.Seed;
 /// Their quotations print no warranty until the Managing Director sets one.
 ///
 /// The template's bank details are not seeded. The repository is public and the
-/// client's banking details are covered by the non-disclosure agreement; they are
-/// entered by the Managing Director in the running system instead.
+/// client's banking details are covered by the non-disclosure agreement. Where the
+/// quotation takes them from is still to be decided.
 ///
 /// Must run after <see cref="CatalogueSeeder"/>, so the Staron product lines exist
 /// to be linked.
