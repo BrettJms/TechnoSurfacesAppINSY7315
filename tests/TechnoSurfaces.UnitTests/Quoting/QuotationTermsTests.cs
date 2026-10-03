@@ -87,6 +87,7 @@ public sealed class QuotationTermsTests : IAsyncLifetime
     {
         var terms = await _reader.GetStandingTermsAsync();
 
+        Assert.DoesNotContain(terms, t => t.Section == TermSection.BankDetails);
         Assert.DoesNotContain(terms, t => t.Text.Contains("ABSA", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(terms, t => t.Text.Contains("account", StringComparison.OrdinalIgnoreCase)
                                        && t.Text.Contains("branch", StringComparison.OrdinalIgnoreCase));
