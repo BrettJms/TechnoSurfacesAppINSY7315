@@ -86,11 +86,55 @@ public class Quote
         return next;
     }
 
-    public void SetStatus(QuoteStatus status) => Status = status;
+    // ---- The lifecycle (Task 1 5.2.1). Status has no public setter; every change
+    // ---- goes through QuoteLifecycle, which refuses an illegal move.
 
-    public void RecordApproval(string userId)
+    /// <summary>An estimator's quote goes to the approval queue (US-16).</summary>
+    public void Submit() => Status = QuoteLifecycle.Next(Status, QuoteTransition.Submit);
+
+    /// <summary>
+    /// Approves the quote and seals its current version, so what was approved is
+    /// what is sent. Any correction by the Managing Director (US-18) is made before
+    /// this call, while the version is still open.
+    ///
+    /// A Draft may be approved directly only by its own author: that is the
+    /// Managing Director approving their own quote. Anyone else's Draft must be
+    /// submitted and approved from the queue (Task 1 5.2.1). Who may approve at all
+    /// is the CanApproveQuote policy, so an estimator never reaches this call.
+    /// </summary>
+    public void Approve(string approvedByUserId)
     {
-        ApprovedByUserId = userId;
+        var version = CurrentVersion
+            ?? throw new InvalidOperationException("A quote with no version has nothing to approve.");
+
+        var next = QuoteLifecycle.Next(Status, QuoteTransition.Approve);
+
+        if (Status == QuoteStatus.Draft && approvedByUserId != CreatedByUserId)
+            throw new InvalidQuoteTransitionException(Status, QuoteTransition.Approve,
+                "A draft can be approved directly only by its author. Submit it for approval first.");
+
+        Status = next;
+        version.Seal();
+        ApprovedByUserId = approvedByUserId;
         ApprovedAtUtc = DateTime.UtcNow;
+    }
+
+    public void MarkSent() => Status = QuoteLifecycle.Next(Status, QuoteTransition.Send);
+
+    /// <summary>Records that the signed acceptance came back. The signature is not captured.</summary>
+    public void MarkAccepted() => Status = QuoteLifecycle.Next(Status, QuoteTransition.Accept);
+
+    /// <summary>
+    /// Moves the quote to Expired once its validity period has passed. Returns
+    /// false, and changes nothing, while the quote is still valid on
+    /// <paramref name="today"/> or is in a status that cannot expire.
+    /// </summary>
+    public bool ExpireIfLapsed(DateOnly today)
+    {
+        if (today <= ValidUntil || !QuoteLifecycle.Allows(Status, QuoteTransition.Expire))
+            return false;
+
+        Status = QuoteLifecycle.Next(Status, QuoteTransition.Expire);
+        return true;
     }
 }
