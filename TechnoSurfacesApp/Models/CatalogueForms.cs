@@ -34,3 +34,37 @@ public sealed class SetRateForm
     [Required(ErrorMessage = "Enter the date the rate takes effect.")]
     public DateOnly? EffectiveFrom { get; set; }
 }
+
+/// <summary>Posted by the terms screen to add a line to a section.</summary>
+public sealed class AddTermForm
+{
+    public TechnoSurfaces.Domain.TermSection Section { get; set; }
+
+    [Required(ErrorMessage = "Enter the wording.")]
+    [StringLength(500, ErrorMessage = "Keep a line to 500 characters.")]
+    public string? Text { get; set; }
+}
+
+/// <summary>Posted by the terms screen to change a line's wording.</summary>
+public sealed class UpdateTermForm
+{
+    [Range(1, int.MaxValue)]
+    public int TermId { get; set; }
+
+    [Required(ErrorMessage = "Enter the wording, or retire the line instead.")]
+    [StringLength(500, ErrorMessage = "Keep a line to 500 characters.")]
+    public string? Text { get; set; }
+}
+
+/// <summary>Posted by the terms screen to set or clear a brand's warranty.</summary>
+public sealed class BrandWarrantyForm
+{
+    [Range(1, int.MaxValue)]
+    public int BrandId { get; set; }
+
+    [StringLength(60, ErrorMessage = "Keep each warranty to 60 characters.")]
+    public string? MaterialWarranty { get; set; }
+
+    [StringLength(60, ErrorMessage = "Keep each warranty to 60 characters.")]
+    public string? WorkmanshipWarranty { get; set; }
+}

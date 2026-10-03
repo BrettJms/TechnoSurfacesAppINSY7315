@@ -9,6 +9,7 @@ using System.Security.Claims;
 using TechnoSurfacesApp.Services;
 using System.Globalization;
 using TechnoSurfaces.Application.Auditing;
+using TechnoSurfaces.Application.Catalogue;
 
 namespace TechnoSurfacesApp.Controllers;
 
@@ -113,13 +114,18 @@ public class AdminController : AppController
     //  Quotation terms - the standing content on every customer quotation
     // ======================================================================
 
-    public async Task<IActionResult> Terms()
+    public async Task<IActionResult> Terms([FromServices] ICatalogueService catalogue, CancellationToken ct)
     {
         ViewData["Title"] = "Quotation terms";
         ViewData["Page"] = "terms";
         ViewData["Crumb"] = "Administration";
 
-        return View(new TermsVm { CanEdit = await CanAsync(Policies.CanEditCatalogue) });
+        return View(new TermsVm
+        {
+            CanEdit = await CanAsync(Policies.CanEditCatalogue),
+            Terms = await catalogue.GetTermsAsync(ct),
+            Brands = await catalogue.GetBrandsAsync(ct)
+        });
     }
 
     // ======================================================================
@@ -182,6 +188,14 @@ public class UsersVm
 public class TermsVm
 {
     public bool CanEdit { get; set; }
+    public IReadOnlyList<TermRow> Terms { get; set; } = [];
+    public IReadOnlyList<BrandRow> Brands { get; set; } = [];
+
+    public List<TermRow> ActiveIn(TechnoSurfaces.Domain.TermSection section) =>
+        Terms.Where(t => t.Section == section && t.IsActive).ToList();
+
+    public List<TermRow> RetiredIn(TechnoSurfaces.Domain.TermSection section) =>
+        Terms.Where(t => t.Section == section && !t.IsActive).ToList();
 }
 
 public class AuditVm
