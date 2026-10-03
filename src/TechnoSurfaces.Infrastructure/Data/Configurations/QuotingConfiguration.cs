@@ -163,10 +163,18 @@ public sealed class CostingLineConfiguration : IEntityTypeConfiguration<CostingL
             .IsRequired(false)
             .OnDelete(DeleteBehavior.NoAction);
 
-        // A costing line is either a material line or a rate line.
-        e.ToTable(t => t.HasCheckConstraint(
-            "CK_CostingLine_MaterialOrRate",
-            "([MaterialPriceId] IS NOT NULL AND [RateItemId] IS NULL) OR ([MaterialPriceId] IS NULL AND [RateItemId] IS NOT NULL)"));
+        e.ToTable(t =>
+        {
+            // A costing line is either a material line or a rate line.
+            t.HasCheckConstraint(
+                "CK_CostingLine_MaterialOrRate",
+                "([MaterialPriceId] IS NOT NULL AND [RateItemId] IS NULL) OR ([MaterialPriceId] IS NULL AND [RateItemId] IS NOT NULL)");
+
+            // NFR-01: no line is priced at zero, whether the price came from the
+            // catalogue or was typed on the quote.
+            t.HasCheckConstraint("CK_CostingLine_PricePositive", "[ResolvedUnitPrice] > 0");
+            t.HasCheckConstraint("CK_CostingLine_OverridePositive", "[OverriddenUnitPrice] IS NULL OR [OverriddenUnitPrice] > 0");
+        });
 
         e.HasIndex(x => x.QuoteVersionId);
     }

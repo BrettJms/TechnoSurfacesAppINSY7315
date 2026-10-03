@@ -226,7 +226,9 @@ public sealed class RatePriceConfiguration : IEntityTypeConfiguration<RatePrice>
 
         e.ToTable(t =>
         {
-            t.HasCheckConstraint("CK_RatePrice_NotNegative", "[Amount] >= 0");
+            // A rate of zero would price a line at zero. An item with no rate has
+            // no RatePrice row and reports as unresolved instead.
+            t.HasCheckConstraint("CK_RatePrice_Positive", "[Amount] > 0");
             t.HasCheckConstraint("CK_RatePrice_Period", "[EffectiveTo] IS NULL OR [EffectiveTo] >= [EffectiveFrom]");
             t.HasTrigger(PriceTriggers.RatePriceNoOverlap);
         });
