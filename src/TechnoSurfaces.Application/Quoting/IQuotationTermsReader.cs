@@ -18,7 +18,12 @@ public sealed record BrandWarranty(string Brand, string MaterialWarranty, string
 /// </summary>
 public interface IQuotationTermsReader
 {
-    /// <summary>Every active line, by section and then in template order.</summary>
+    /// <summary>
+    /// Every active line, by section and then in template order. The bank details
+    /// are not seeded, so until the Managing Director enters them there is no
+    /// <see cref="TermSection.BankDetails"/> line, and the quotation must say that
+    /// the bank details are not set rather than leave them out silently.
+    /// </summary>
     Task<IReadOnlyList<StandingTerm>> GetStandingTermsAsync(CancellationToken ct = default);
 
     /// <summary>
@@ -28,4 +33,12 @@ public interface IQuotationTermsReader
     /// brand's wording.
     /// </summary>
     Task<BrandWarranty?> GetWarrantyForProductLineAsync(int productLineId, CancellationToken ct = default);
+
+    /// <summary>
+    /// The confirmed warranties for the brands behind the given material prices,
+    /// one per brand, in brand order. Material from a brand with no confirmed
+    /// warranty contributes nothing.
+    /// </summary>
+    Task<IReadOnlyList<BrandWarranty>> GetWarrantiesForMaterialPricesAsync(
+        IReadOnlyCollection<int> materialPriceIds, CancellationToken ct = default);
 }
