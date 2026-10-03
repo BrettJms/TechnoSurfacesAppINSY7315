@@ -39,6 +39,8 @@ public class TechnoSurfacesDbContext : DbContext
     public DbSet<QuotationLine> QuotationLines => Set<QuotationLine>();
     public DbSet<InvoiceRecord> InvoiceRecords => Set<InvoiceRecord>();
     public DbSet<QuotationTerm> QuotationTerms => Set<QuotationTerm>();
+    public DbSet<QuoteVersionTerm> QuoteVersionTerms => Set<QuoteVersionTerm>();
+    public DbSet<QuoteVersionWarranty> QuoteVersionWarranties => Set<QuoteVersionWarranty>();
 
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
