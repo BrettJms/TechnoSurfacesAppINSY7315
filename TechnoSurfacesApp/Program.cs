@@ -98,7 +98,9 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(Policies.CanEditCatalogue, p => p.RequireRole(Roles.ManagingDirector));
     options.AddPolicy(Policies.CanManageUsers, p => p.RequireRole(Roles.ManagingDirector));
     options.AddPolicy(Policies.CanViewAuditTrail, p => p.RequireRole(Roles.ManagingDirector));
+    options.AddPolicy(Policies.CanEditQuote, p => p.AddRequirements(new EditQuoteRequirement()));
 });
+builder.Services.AddSingleton<IAuthorizationHandler, EditQuoteHandler>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISignInService, SignInService>();
