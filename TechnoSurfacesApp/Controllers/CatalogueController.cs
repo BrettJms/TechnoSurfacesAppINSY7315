@@ -142,6 +142,39 @@ public class CatalogueController : AppController
         Outcome(await _catalogue.RetireProductLineAsync(productLineId),
             "Product line retired. It stays on existing quotes but cannot be chosen on new ones.");
 
+    // Quotation terms and brand warranties (US-12, US-13): the same policy, since
+    // the MD maintains everything printed on a quotation.
+
+    [HttpPost]
+    [Authorize(Policy = Policies.CanEditCatalogue)]
+    public async Task<IActionResult> AddTerm(AddTermForm form) =>
+        Outcome(ModelState.IsValid
+                ? await _catalogue.AddTermAsync(form.Section, form.Text!)
+                : CatalogueResult.Fail(FirstError()),
+            "Line added. New quotations print it; approved quotes keep the wording they were issued with.");
+
+    [HttpPost]
+    [Authorize(Policy = Policies.CanEditCatalogue)]
+    public async Task<IActionResult> UpdateTerm(UpdateTermForm form) =>
+        Outcome(ModelState.IsValid
+                ? await _catalogue.UpdateTermAsync(form.TermId, form.Text!)
+                : CatalogueResult.Fail(FirstError()),
+            "Line saved. Approved quotes keep the wording they were issued with.");
+
+    [HttpPost]
+    [Authorize(Policy = Policies.CanEditCatalogue)]
+    public async Task<IActionResult> RetireTerm(int termId) =>
+        Outcome(await _catalogue.RetireTermAsync(termId),
+            "Line retired. It no longer prints on new quotations.");
+
+    [HttpPost]
+    [Authorize(Policy = Policies.CanEditCatalogue)]
+    public async Task<IActionResult> SetBrandWarranty(BrandWarrantyForm form) =>
+        Outcome(ModelState.IsValid
+                ? await _catalogue.SetBrandWarrantyAsync(form.BrandId, form.MaterialWarranty, form.WorkmanshipWarranty)
+                : CatalogueResult.Fail(FirstError()),
+            "Warranty saved.");
+
     private string FirstError() =>
         ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
         ?? "Check the values entered.";
