@@ -21,6 +21,16 @@ param demoAccounts bool = false
 @secure()
 param demoPassword string = ''
 
+@description('Production only. Email address of the first Managing Director account, created once at the first start of an empty production database. Leave empty for staging.')
+param initialAdminEmail string = ''
+
+@description('Production only. Full name of the first Managing Director account.')
+param initialAdminName string = ''
+
+@description('Production only. Temporary password for the first Managing Director account; it must be changed at first sign-in. At least 12 characters with an upper-case letter, a lower-case letter and a digit.')
+@secure()
+param initialAdminPassword string = ''
+
 @description('Address that receives the availability alert and the budget alert.')
 param alertEmail string
 
@@ -47,6 +57,24 @@ var aiName = 'tsqa-ai-${environment}'
 var sqlHostname = '${sqlServerName}${az.environment().suffixes.sqlServerHostname}'
 var appHostname = '${appName}.azurewebsites.net'
 var healthUrl = 'https://${appHostname}/health'
+
+// Production has no demo accounts, so its first Managing Director account is
+// created from these three secrets (IdentitySeeder.SeedInitialManagingDirectorAsync).
+var seedInitialAdmin = isProd && !empty(initialAdminEmail)
+var initialAdminSettings = seedInitialAdmin ? [
+  {
+    name: 'Seed__InitialAdminEmail'
+    value: '@Microsoft.KeyVault(VaultName=${kvName};SecretName=seed-initial-admin-email)'
+  }
+  {
+    name: 'Seed__InitialAdminName'
+    value: '@Microsoft.KeyVault(VaultName=${kvName};SecretName=seed-initial-admin-name)'
+  }
+  {
+    name: 'Seed__InitialAdminPassword'
+    value: '@Microsoft.KeyVault(VaultName=${kvName};SecretName=seed-initial-admin-password)'
+  }
+] : []
 
 // -----------------------------------------------------------------------------
 // Network
@@ -219,6 +247,30 @@ resource demoPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = if 
   }
 }
 
+resource initialAdminEmailSecret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = if (seedInitialAdmin) {
+  parent: kv
+  name: 'seed-initial-admin-email'
+  properties: {
+    value: initialAdminEmail
+  }
+}
+
+resource initialAdminNameSecret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = if (seedInitialAdmin) {
+  parent: kv
+  name: 'seed-initial-admin-name'
+  properties: {
+    value: initialAdminName
+  }
+}
+
+resource initialAdminPasswordSecret 'Microsoft.KeyVault/vaults/secrets@2024-11-01' = if (seedInitialAdmin) {
+  parent: kv
+  name: 'seed-initial-admin-password'
+  properties: {
+    value: initialAdminPassword
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Monitoring
 // -----------------------------------------------------------------------------
@@ -268,6 +320,9 @@ resource web 'Microsoft.Web/sites@2023-01-01' = {
   dependsOn: [
     connectionSecret
     demoPasswordSecret
+    initialAdminEmailSecret
+    initialAdminNameSecret
+    initialAdminPasswordSecret
   ]
   identity: {
     type: 'SystemAssigned'
@@ -280,7 +335,7 @@ resource web 'Microsoft.Web/sites@2023-01-01' = {
       linuxFxVersion: linuxRuntime
       minTlsVersion: '1.2'
       alwaysOn: true
-      appSettings: [
+      appSettings: concat([
         {
           name: 'ASPNETCORE_ENVIRONMENT'
           value: isProd ? 'Production' : 'Staging'
@@ -319,7 +374,7 @@ resource web 'Microsoft.Web/sites@2023-01-01' = {
           name: 'Seed__DevelopmentPassword'
           value: demoAccounts ? '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/seed-demo-password)' : ''
         }
-      ]
+      ], initialAdminSettings)
     }
   }
 }
