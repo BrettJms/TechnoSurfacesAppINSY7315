@@ -32,7 +32,11 @@ public sealed class AuditInterceptor : SaveChangesInterceptor
         typeof(Colour), typeof(ProductLine),
 
         // US-26: creating, deactivating and reactivating an account.
-        typeof(AppUser)
+        typeof(AppUser),
+
+        // US-12/13: the standing wording and bank details printed on every
+        // quotation, and the warranty printed for each brand.
+        typeof(QuotationTerm), typeof(Brand)
     };
 
     private readonly ICurrentUser _currentUser;

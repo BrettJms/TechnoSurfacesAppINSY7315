@@ -1,4 +1,7 @@
-﻿namespace TechnoSurfaces.Application.Catalogue;
+﻿using TechnoSurfaces.Domain;
+
+namespace TechnoSurfaces.Application.Catalogue;
+
 
 /// <summary>The outcome of a catalogue change, with a message the MD can act on.</summary>
 public sealed record CatalogueResult(bool Succeeded, string? Error = null)
@@ -30,6 +33,15 @@ public sealed record RateCardRow(
     public bool AwaitingClientFigure => !IsDerived && Amount is null;
 }
 
+/// <summary>One line of standing wording on the quotation terms screen.</summary>
+public sealed record TermRow(int Id, TermSection Section, string Text, int SortOrder, bool IsActive);
+
+/// <summary>A brand and the warranty printed for it: both periods, or neither.</summary>
+public sealed record BrandRow(int Id, string Name, string? MaterialWarranty, string? WorkmanshipWarranty, int ProductLineCount)
+{
+    public bool HasWarranty => MaterialWarranty is not null && WorkmanshipWarranty is not null;
+}
+
 /// <summary>
 /// Catalogue and rate-card maintenance for the Managing Director (US-23, US-24, NFR-10).
 /// Price rules live in IPriceHistory; this service adds the screens' reads, retirement,
@@ -53,4 +65,21 @@ public interface ICatalogueService
     Task<CatalogueResult> RetireColourAsync(int colourId, CancellationToken ct = default);
 
     Task<CatalogueResult> RetireProductLineAsync(int productLineId, CancellationToken ct = default);
+
+    // Quotation terms and brand warranties (US-12, US-13).
+
+    Task<IReadOnlyList<TermRow>> GetTermsAsync(CancellationToken ct = default);
+
+    Task<IReadOnlyList<BrandRow>> GetBrandsAsync(CancellationToken ct = default);
+
+    /// <summary>Adds a line at the end of its section. The bank details are entered this way.</summary>
+    Task<CatalogueResult> AddTermAsync(TermSection section, string text, CancellationToken ct = default);
+
+    Task<CatalogueResult> UpdateTermAsync(int termId, string text, CancellationToken ct = default);
+
+    /// <summary>Retire, never delete: approved versions keep their own copy of the wording.</summary>
+    Task<CatalogueResult> RetireTermAsync(int termId, CancellationToken ct = default);
+
+    /// <summary>Sets both periods, or clears both. Half a warranty is refused.</summary>
+    Task<CatalogueResult> SetBrandWarrantyAsync(int brandId, string? materialWarranty, string? workmanshipWarranty, CancellationToken ct = default);
 }
