@@ -107,12 +107,15 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(Policies.CanEditCatalogue, p => p.RequireRole(Roles.ManagingDirector));
     options.AddPolicy(Policies.CanManageUsers, p => p.RequireRole(Roles.ManagingDirector));
     options.AddPolicy(Policies.CanViewAuditTrail, p => p.RequireRole(Roles.ManagingDirector));
+    options.AddPolicy(Policies.CanEditQuote, p => p.AddRequirements(new EditQuoteRequirement()));
 });
+builder.Services.AddSingleton<IAuthorizationHandler, EditQuoteHandler>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ISignInService, SignInService>();
 builder.Services.AddScoped<TechnoSurfaces.Services.DemoSession>();
 builder.Services.AddPlatformHealthChecks();
+builder.Services.AddSignInRateLimiting();
 
 
 var app = builder.Build();
@@ -132,15 +135,17 @@ await IdentitySeeder.SeedAsync(app.Services, app.Configuration, app.Logger,
 TechnoSurfacesApp.Data.Db.Initialise();
 
 // Configure the HTTP request pipeline.
+app.UseSecurityHeaders();
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
