@@ -235,11 +235,7 @@ public class QuotesController : AppController
         {
             Quote = quote,
             IsMd = await CanAsync(Policies.CanApproveQuote),
-            Checks = BuildChecks(quote),
-            Activity = Db.Audit
-                .Where(a => a.EntityRef == quote.Ref)
-                .OrderByDescending(a => a.When)
-                .ToList()
+            Checks = BuildChecks(quote)
         });
     }
 
@@ -378,6 +374,7 @@ public class QuoteListVm
     public int? CustomerId { get; set; }
     public int? OwnerId { get; set; }
     public string? Search { get; set; }
+    public List<AuditEntry> Activity { get; set; } = new();
 
     public bool AnyFilter =>
         !string.IsNullOrEmpty(Status) || CustomerId > 0 ||
