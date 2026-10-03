@@ -201,3 +201,16 @@ public sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEntr
         e.HasIndex(x => x.ChangedAtUtc);
     }
 }
+
+public sealed class QuotationTermConfiguration : IEntityTypeConfiguration<QuotationTerm>
+{
+    public void Configure(EntityTypeBuilder<QuotationTerm> e)
+    {
+        e.Property(x => x.Text).HasMaxLength(500).IsRequired();
+
+        e.ToTable(t => t.HasCheckConstraint("CK_QuotationTerm_TextNotBlank", "[Text] <> ''"));
+
+        // The quotation reads the active lines of every section in order.
+        e.HasIndex(x => new { x.IsActive, x.Section, x.SortOrder });
+    }
+}

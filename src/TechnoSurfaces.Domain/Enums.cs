@@ -94,3 +94,19 @@ public enum PricingStructure
     Band,
     Item
 }
+
+/// <summary>
+/// The sections of standing wording printed on every customer quotation, in the
+/// order the client's quotation template prints them. Added last so the stored
+/// values of the existing enumerations are unaffected.
+/// </summary>
+public enum TermSection
+{
+    Notes,
+    LeadTimes,
+    Exclusions,
+    TermsAndConditions,
+    Disclaimers,
+    Warranties,
+    PaymentTerms
+}
