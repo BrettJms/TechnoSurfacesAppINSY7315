@@ -106,6 +106,23 @@ public sealed class QuoteVersionConfiguration : IEntityTypeConfiguration<QuoteVe
             .OnDelete(DeleteBehavior.NoAction);
         e.Navigation(x => x.QuotationLines).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        // The wording and warranties a version was approved with. They belong to
+        // the version, like its lines, so an issued quotation can be reproduced
+        // exactly after the standing terms change.
+        e.HasMany(x => x.Terms)
+            .WithOne()
+            .HasForeignKey(t => t.QuoteVersionId)
+            .OnDelete(DeleteBehavior.NoAction);
+        e.Navigation(x => x.Terms).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        e.HasMany(x => x.Warranties)
+            .WithOne()
+            .HasForeignKey(w => w.QuoteVersionId)
+            .OnDelete(DeleteBehavior.NoAction);
+        e.Navigation(x => x.Warranties).UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        e.Ignore(x => x.HasRecordedTerms);
+
         // Version numbers are sequential within a quote.
         e.HasIndex(x => new { x.QuoteId, x.VersionNo }).IsUnique();
     }
@@ -199,5 +216,40 @@ public sealed class AuditEntryConfiguration : IEntityTypeConfiguration<AuditEntr
 
         e.HasIndex(x => new { x.EntityName, x.EntityKey });
         e.HasIndex(x => x.ChangedAtUtc);
+    }
+}
+
+public sealed class QuotationTermConfiguration : IEntityTypeConfiguration<QuotationTerm>
+{
+    public void Configure(EntityTypeBuilder<QuotationTerm> e)
+    {
+        e.Property(x => x.Text).HasMaxLength(500).IsRequired();
+
+        e.ToTable(t => t.HasCheckConstraint("CK_QuotationTerm_TextNotBlank", "[Text] <> ''"));
+
+        // The quotation reads the active lines of every section in order.
+        e.HasIndex(x => new { x.IsActive, x.Section, x.SortOrder });
+    }
+}
+
+public sealed class QuoteVersionTermConfiguration : IEntityTypeConfiguration<QuoteVersionTerm>
+{
+    public void Configure(EntityTypeBuilder<QuoteVersionTerm> e)
+    {
+        e.Property(x => x.Text).HasMaxLength(500).IsRequired();
+        e.HasIndex(x => new { x.QuoteVersionId, x.Section, x.SortOrder });
+    }
+}
+
+public sealed class QuoteVersionWarrantyConfiguration : IEntityTypeConfiguration<QuoteVersionWarranty>
+{
+    public void Configure(EntityTypeBuilder<QuoteVersionWarranty> e)
+    {
+        e.Property(x => x.Brand).HasMaxLength(120).IsRequired();
+        e.Property(x => x.MaterialWarranty).HasMaxLength(60).IsRequired();
+        e.Property(x => x.WorkmanshipWarranty).HasMaxLength(60).IsRequired();
+
+        // One warranty per brand on a version.
+        e.HasIndex(x => new { x.QuoteVersionId, x.Brand }).IsUnique();
     }
 }

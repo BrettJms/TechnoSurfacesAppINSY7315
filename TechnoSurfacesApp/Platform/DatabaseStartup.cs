@@ -5,7 +5,8 @@ using TechnoSurfacesApp.Identity;
 
 namespace TechnoSurfacesApp.Platform;
 
-/// Brings both databases up to date and loads the catalogue and rate card.
+/// Brings both databases up to date and loads the catalogue, the rate card and
+/// the standing quotation terms.
 public static class DatabaseStartup
 {
     public static async Task InitialiseAsync(WebApplication app)
@@ -24,5 +25,6 @@ public static class DatabaseStartup
         await domainDb.Database.MigrateAsync();
         await CatalogueSeeder.SeedAsync(domainDb);
         await RateCardSeeder.SeedAsync(domainDb);
+        await QuotationTermsSeeder.SeedAsync(domainDb);
     }
 }
