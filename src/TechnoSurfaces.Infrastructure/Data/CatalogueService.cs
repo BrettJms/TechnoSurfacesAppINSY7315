@@ -4,6 +4,7 @@ using TechnoSurfaces.Application.Catalogue;
 using TechnoSurfaces.Application.Pricing;
 using TechnoSurfaces.Domain;
 using TechnoSurfaces.Domain.Catalogue;
+using TechnoSurfaces.Domain.Quoting;
 
 namespace TechnoSurfaces.Infrastructure.Data;
 
@@ -148,6 +149,106 @@ public sealed class CatalogueService : ICatalogueService
         await _db.SaveChangesAsync(ct);
         return CatalogueResult.Ok();
     }
+
+    // ------------------------------------------------------------ quotation terms (US-12, US-13)
+
+    private const int MaxTermLength = 500;      // QuotationTerm.Text column
+    private const int MaxWarrantyLength = 60;   // Brand warranty columns
+
+    public async Task<IReadOnlyList<TermRow>> GetTermsAsync(CancellationToken ct = default) =>
+        await _db.QuotationTerms.AsNoTracking()
+            .OrderBy(t => t.Section).ThenBy(t => t.SortOrder)
+            .Select(t => new TermRow(t.Id, t.Section, t.Text, t.SortOrder, t.IsActive))
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<BrandRow>> GetBrandsAsync(CancellationToken ct = default) =>
+        await _db.Brands.AsNoTracking()
+            .OrderBy(b => b.Name)
+            .Select(b => new BrandRow(b.Id, b.Name, b.MaterialWarranty, b.WorkmanshipWarranty, b.ProductLines.Count))
+            .ToListAsync(ct);
+
+    public async Task<CatalogueResult> AddTermAsync(TermSection section, string text, CancellationToken ct = default)
+    {
+        if (!Enum.IsDefined(section))
+            return CatalogueResult.Fail("Choose a section of the quotation.");
+
+        var wording = Clean(text);
+        if (wording is null)
+            return CatalogueResult.Fail("Enter the wording.");
+        if (wording.Length > MaxTermLength)
+            return CatalogueResult.Fail($"Keep a line to {MaxTermLength} characters.");
+
+        var last = await _db.QuotationTerms
+            .Where(t => t.Section == section)
+            .MaxAsync(t => (int?)t.SortOrder, ct) ?? 0;
+
+        _db.QuotationTerms.Add(new QuotationTerm { Section = section, Text = wording, SortOrder = last + 1 });
+        await _db.SaveChangesAsync(ct);
+        return CatalogueResult.Ok();
+    }
+
+    public async Task<CatalogueResult> UpdateTermAsync(int termId, string text, CancellationToken ct = default)
+    {
+        var wording = Clean(text);
+        if (wording is null)
+            return CatalogueResult.Fail("Enter the wording, or retire the line instead.");
+        if (wording.Length > MaxTermLength)
+            return CatalogueResult.Fail($"Keep a line to {MaxTermLength} characters.");
+
+        var term = await _db.QuotationTerms.FindAsync(new object[] { termId }, ct);
+        if (term is null)
+            return CatalogueResult.Fail("That line is not in the quotation terms.");
+        if (!term.IsActive)
+            return CatalogueResult.Fail("That line has been retired. Add a new line instead.");
+
+        // Quotes already approved keep the wording recorded on their version;
+        // the change applies to quotations from now on.
+        term.Text = wording;
+        await _db.SaveChangesAsync(ct);
+        return CatalogueResult.Ok();
+    }
+
+    public async Task<CatalogueResult> RetireTermAsync(int termId, CancellationToken ct = default)
+    {
+        var term = await _db.QuotationTerms.FindAsync(new object[] { termId }, ct);
+        if (term is null)
+            return CatalogueResult.Fail("That line is not in the quotation terms.");
+        if (!term.IsActive)
+            return CatalogueResult.Ok();
+
+        // A version cannot be approved with no standing terms at all.
+        if (!await _db.QuotationTerms.AnyAsync(t => t.IsActive && t.Id != termId, ct))
+            return CatalogueResult.Fail("A quotation needs at least one standing term. Add another line before retiring this one.");
+
+        term.IsActive = false;
+        await _db.SaveChangesAsync(ct);
+        return CatalogueResult.Ok();
+    }
+
+    public async Task<CatalogueResult> SetBrandWarrantyAsync(
+        int brandId, string? materialWarranty, string? workmanshipWarranty, CancellationToken ct = default)
+    {
+        var material = Clean(materialWarranty);
+        var workmanship = Clean(workmanshipWarranty);
+
+        // Both or neither, as the database requires: half a warranty would print
+        // on a quotation as if it were the whole of it.
+        if ((material is null) != (workmanship is null))
+            return CatalogueResult.Fail("Enter both the material and the workmanship warranty, or clear both.");
+        if (material?.Length > MaxWarrantyLength || workmanship?.Length > MaxWarrantyLength)
+            return CatalogueResult.Fail($"Keep each warranty to {MaxWarrantyLength} characters.");
+
+        var brand = await _db.Brands.FindAsync(new object[] { brandId }, ct);
+        if (brand is null)
+            return CatalogueResult.Fail("That brand is not in the catalogue.");
+
+        brand.MaterialWarranty = material;
+        brand.WorkmanshipWarranty = workmanship;
+        await _db.SaveChangesAsync(ct);
+        return CatalogueResult.Ok();
+    }
+
+    private static string? Clean(string? text) => string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
     /// <summary>
     /// IPriceHistory signals a broken price rule by throwing. The MD gets the rule's
