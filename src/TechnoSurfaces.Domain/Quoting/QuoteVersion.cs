@@ -133,8 +133,9 @@ public class QuoteVersion
     }
 
     /// <summary>
-    /// Closes the version. Called when the quote is submitted or issued. After this
-    /// the snapshot cannot change.
+    /// Closes the version. Called when the quote is approved, so the Managing
+    /// Director can still correct a pending quote (US-18), and when a revision
+    /// starts. After this the snapshot cannot change.
     /// </summary>
     public void Seal() => IsSealed = true;
 
