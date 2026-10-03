@@ -44,7 +44,7 @@ This section records the security controls committed to in Task 1 8, where each 
 
 | Policy | Who | Enforced on |
 |---|---|---|
-| `CanEditCatalogue` | Managing Director | Price, rate and retirement actions (`CatalogueController`) |
+| `CanEditCatalogue` | Managing Director | Prices, rates, retiring items, quotation terms, bank details and brand warranties (`CatalogueController`) |
 | `CanManageUsers` | Managing Director | Create, deactivate, reactivate and reset accounts (`AdminController`) |
 | `CanViewAuditTrail` | Managing Director | `/Admin/Audit` |
 | `CanApproveQuote` | Managing Director | Approval actions |
@@ -55,7 +55,7 @@ This section records the security controls committed to in Task 1 8, where each 
 
 ### Audit trail (NFR-04, US-19)
 
-- An EF Core `SaveChangesInterceptor` (`src/TechnoSurfaces.Infrastructure/Data/Auditing/AuditInterceptor.cs`) records every change to `MaterialPrice`, `RatePrice`, `Quote`, `QuoteVersion`, `CostingLine`, `Colour`, `ProductLine` and `AppUser`: entity, key, property, old and new value, user and UTC time. Because it is an interceptor, no service can skip it by forgetting to call it.
+- An EF Core `SaveChangesInterceptor` (`src/TechnoSurfaces.Infrastructure/Data/Auditing/AuditInterceptor.cs`) records every change to `MaterialPrice`, `RatePrice`, `Quote`, `QuoteVersion`, `CostingLine`, `Colour`, `ProductLine`, `AppUser`, `QuotationTerm` and `Brand`: entity, key, property, old and new value, user and UTC time. Because it is an interceptor, no service can skip it by forgetting to call it.
 - The audit rows are written **in the same transaction** as the change. If they cannot be written, the change is rolled back.
 - **Insert-only:** the database trigger `TR_AuditEntries_InsertOnly` refuses any UPDATE or DELETE on `AuditEntries` (migration `MakeAuditEntriesInsertOnly`), and no code or screen edits or deletes an entry.
 - **Audit trail screen** (`/Admin/Audit`, MD only): filter by user, entity type, date range (South African time) and price changes only.
@@ -72,6 +72,7 @@ This section records the security controls committed to in Task 1 8, where each 
 - **No personal data in logs:** sign-in and account events are logged without names or email addresses.
 - **No personal data in URLs:** routes carry ids only, and the audit filter puts a user id, not a name, in the address.
 - Customer records sit behind sign-in. Both roles maintain customers, by client decision.
+- - **Bank details** are entered by the Managing Director on the quotation terms screen and stored in the database, never in source code (the repository is public). Every change is audited.
 
 ### Transport and secrets (Matteo Nusca)
 
@@ -94,6 +95,7 @@ This section records the security controls committed to in Task 1 8, where each 
 | Deactivated user signs in: refused | Enforced in `SignInService`; no automated test yet |
 | Form post without an antiforgery token: rejected | Enforced globally; no automated HTTP test yet |
 | Registration route does not exist | Confirmed: no such route in any controller |
+| MD changes to terms and bank details are audited | Unit test, `QuotationTermsMaintenanceTests` |
 
 The HTTP-level tests need an integration test project with a test database, which does not exist yet.
 
@@ -106,7 +108,6 @@ The HTTP-level tests need an integration test project with a test database, whic
 | Forgot password with a single-use token | Placeholder page | There is no email service (client decision). The MD resets the password instead, and the user must change it at next sign-in |
 | Activation link for new accounts | Replaced | A temporary password plus a forced change does the same job without email |
 | Least-privilege database login | Deferred | The app connects as the SQL server administrator. A contained user with read/write rights only is the fix |
-| Quotation terms maintenance (US-12) | Not implemented | No data model exists for the terms, and bank details are hard-coded in `Views/Admin/Terms.cshtml`. Awaiting a group decision |
 | Change history on prototype quotes | Empty until real quotes | The quote screens still read prototype data, so the panel shows no history until they read the database |
 
 Built by Brett James (ST10440287), Kallan Jones (ST10445389), Morgan Gibbon
