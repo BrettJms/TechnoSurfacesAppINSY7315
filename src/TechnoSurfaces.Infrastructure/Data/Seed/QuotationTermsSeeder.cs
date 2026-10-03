@@ -11,22 +11,23 @@ namespace TechnoSurfaces.Infrastructure.Data.Seed;
 /// Task1/Quotation_Template_Analysis.md.
 ///
 /// The template states warranties for three brands only: DuPont Corian, and
-/// Avonite and Samsung Staron. Those three are seeded with their periods. The
-/// Staron product lines are linked to Samsung Staron. No other product line is
+/// Avonite and Staron. Those three are seeded with their periods. The Staron
+/// product lines are linked to Staron. No other product line is
 /// given a brand, because nothing the client supplied says which warranty the
 /// Surface Studio, Max on Top, Woodcentre or Perago and Magicstone materials carry.
 /// Their quotations print no warranty until the Managing Director sets one.
 ///
 /// The template's bank details are not seeded. The repository is public and the
-/// client's banking details are covered by the non-disclosure agreement. Where the
-/// quotation takes them from is still to be decided.
+/// client's banking details are covered by the non-disclosure agreement. The
+/// Managing Director enters them as the BankDetails section of the terms; until
+/// then the quotation shows that they are not set.
 ///
 /// Must run after <see cref="CatalogueSeeder"/>, so the Staron product lines exist
 /// to be linked.
 /// </summary>
 public static class QuotationTermsSeeder
 {
-    public const string StaronBrand = "Samsung Staron";
+    public const string StaronBrand = "Staron";
 
     public static async Task SeedAsync(TechnoSurfacesDbContext db, CancellationToken ct = default)
     {

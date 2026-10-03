@@ -6,7 +6,7 @@ namespace TechnoSurfaces.Domain.Catalogue;
 /// warranty.
 ///
 /// Holds the warranty wording for the brand (US-13). The client's quotation
-/// template states it for DuPont Corian and for Avonite and Samsung Staron only.
+/// template states it for DuPont Corian and for Avonite and Staron only.
 /// For any other brand both periods are left empty until the client confirms them,
 /// and the quotation prints no warranty for that brand rather than a guess.
 /// </summary>
