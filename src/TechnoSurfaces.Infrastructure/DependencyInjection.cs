@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TechnoSurfaces.Application.Costing;
 using TechnoSurfaces.Application.Pricing;
+using TechnoSurfaces.Application.Quoting;
 using TechnoSurfaces.Infrastructure.Data;
 
 namespace TechnoSurfaces.Infrastructure;
@@ -20,6 +21,7 @@ public static class DependencyInjection
         services.AddDbContext<TechnoSurfacesDbContext>(o => o.UseSqlServer(connectionString));
 
         services.AddScoped<ICatalogueReader, CatalogueReader>();
+        services.AddScoped<IQuotationTermsReader, QuotationTermsReader>();
 
         // Both strategies are registered, and PriceResolver picks the one matching
         // the supplier's pricing scheme. A sixth supplier on a new scheme means
