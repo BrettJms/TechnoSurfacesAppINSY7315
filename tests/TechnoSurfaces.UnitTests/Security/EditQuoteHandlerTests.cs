@@ -26,8 +26,22 @@ public sealed class EditQuoteHandlerTests
     private static Quote QuoteBy(string authorId, QuoteStatus status = QuoteStatus.Draft)
     {
         var quote = new Quote("TS-2026-0001", 1, 1, authorId, new DateOnly(2026, 10, 2));
-        quote.SetStatus(status);
-        return quote;
+        quote.StartNewVersion(authorId, 30m);
+
+        // Status has no setter: the quote is moved through its real lifecycle
+        // (Task 1 5.2.1), so the test cannot build a state the app never reaches.
+        if (status == QuoteStatus.Draft) return quote;
+
+        quote.Submit();
+        if (status == QuoteStatus.PendingApproval) return quote;
+
+        quote.Approve(Paul);
+        if (status == QuoteStatus.Approved) return quote;
+
+        quote.MarkSent();
+        if (status == QuoteStatus.Sent) return quote;
+
+        throw new ArgumentOutOfRangeException(nameof(status), status, "Not used by these tests.");
     }
 
     private static async Task<bool> CanEdit(ClaimsPrincipal user, Quote quote)
