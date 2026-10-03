@@ -374,7 +374,6 @@ public class QuoteListVm
     public int? CustomerId { get; set; }
     public int? OwnerId { get; set; }
     public string? Search { get; set; }
-    public List<AuditEntry> Activity { get; set; } = new();
 
     public bool AnyFilter =>
         !string.IsNullOrEmpty(Status) || CustomerId > 0 ||
@@ -471,7 +470,6 @@ public class ReviewVm
     public Quote Quote { get; set; } = null!;
     public bool IsMd { get; set; }
     public List<ReviewCheck> Checks { get; set; } = new();
-    public List<AuditEntry> Activity { get; set; } = new();
 }
 
 public class VersionsVm
