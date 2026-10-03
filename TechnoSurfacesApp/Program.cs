@@ -30,6 +30,7 @@ builder.Services.ConfigureDbContext<TechnoSurfacesDbContext>((services, options)
 
 builder.Services.AddScoped<ICatalogueService, CatalogueService>();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
+builder.Services.AddScoped<IAuditTrailService, AuditTrailService>();
 
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(connectionString,
