@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using TechnoSurfacesApp.Data;
 using TechnoSurfaces.Services;
@@ -16,6 +17,16 @@ public abstract class AppController : Controller
     {
         ViewData["PendingCount"] = Db.QuotesAwaitingApproval.Count;
         base.OnActionExecuting(context);
+    }
+
+    /// <summary>
+    /// Whether the signed-in user satisfies a named policy. Screens use this for
+    /// their read-only flags, so the rule lives in the policy and nowhere else.
+    /// </summary>
+    protected async Task<bool> CanAsync(string policy)
+    {
+        var authorization = HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
+        return (await authorization.AuthorizeAsync(User, policy)).Succeeded;
     }
 
     /// <summary>Temporary scaffold for screens still being built.</summary>

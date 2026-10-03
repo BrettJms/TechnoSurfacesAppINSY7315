@@ -1,3 +1,10 @@
 .vs/
 bin/
 obj/
+
+publish/
+publish.zip
+infra/main.json
+
+# Visual Studio per-user settings
+*.user
