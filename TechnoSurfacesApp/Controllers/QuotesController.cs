@@ -1,13 +1,14 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Globalization;
 using System.Text.Json;
-using TechnoSurfacesApp.Data;
-using TechnoSurfacesApp.Helpers;
-using TechnoSurfacesApp.Models;
+using TechnoSurfaces.Models;
 using TechnoSurfaces.Services;
 using TechnoSurfacesApp.Controllers;
+using TechnoSurfacesApp.Data;
+using TechnoSurfacesApp.Helpers;
+using TechnoSurfacesApp.Identity;
+using TechnoSurfacesApp.Models;
 using static System.Collections.Specialized.BitVector32;
-using TechnoSurfaces.Models;
 
 namespace TechnoSurfacesApp.Controllers;
 
@@ -208,7 +209,7 @@ public class QuotesController : AppController
     //  Approval queue
     // ======================================================================
 
-    public IActionResult Approvals()
+    public async Task<IActionResult> Approvals()
     {
         ViewData["Title"] = "Approval queue";
         ViewData["Page"] = "approvals";
@@ -217,11 +218,11 @@ public class QuotesController : AppController
         return View(new ApprovalsVm
         {
             Pending = Db.QuotesAwaitingApproval,
-            IsMd = Session.IsMd
+            IsMd = await CanAsync(Policies.CanApproveQuote)
         });
     }
 
-    public IActionResult Review(int id)
+    public async Task<IActionResult> Review(int id)
     {
         var quote = Db.GetQuote(id);
         if (quote is null) return RedirectToAction(nameof(Approvals));
@@ -233,12 +234,8 @@ public class QuotesController : AppController
         return View(new ReviewVm
         {
             Quote = quote,
-            IsMd = Session.IsMd,
-            Checks = BuildChecks(quote),
-            Activity = Db.Audit
-                .Where(a => a.EntityRef == quote.Ref)
-                .OrderByDescending(a => a.When)
-                .ToList()
+            IsMd = await CanAsync(Policies.CanApproveQuote),
+            Checks = BuildChecks(quote)
         });
     }
 
@@ -473,7 +470,6 @@ public class ReviewVm
     public Quote Quote { get; set; } = null!;
     public bool IsMd { get; set; }
     public List<ReviewCheck> Checks { get; set; } = new();
-    public List<AuditEntry> Activity { get; set; } = new();
 }
 
 public class VersionsVm

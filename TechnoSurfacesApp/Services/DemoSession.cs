@@ -1,44 +1,43 @@
-﻿using TechnoSurfaces.Data;
-using TechnoSurfaces.Models;
+﻿using System.Security.Claims;
 using TechnoSurfacesApp.Data;
+using TechnoSurfacesApp.Identity;
 using TechnoSurfacesApp.Models;
 
 namespace TechnoSurfaces.Services;
 
 /// <summary>
-/// Stands in for authentication. The prototype has no back end, so "who is signed
-/// in" is just a user id on the session. Real authentication is application-managed
-/// usernames and passwords - see the Security section of the report.
+/// Bridges the signed-in Identity user to the prototype's in-memory user record,
+/// so the existing screens keep working until they move onto the database-backed
+/// domain model. It no longer signs anyone in: that is ISignInService's job.
 /// </summary>
 public class DemoSession
 {
-    private const string Key = "ts_user_id";
     private readonly IHttpContextAccessor _http;
 
     public DemoSession(IHttpContextAccessor http) => _http = http;
 
-    private ISession? Session => _http.HttpContext?.Session;
+    private ClaimsPrincipal? Principal => _http.HttpContext?.User;
 
-    public bool IsSignedIn => Session?.GetInt32(Key) is not null;
+    public bool IsSignedIn => Principal?.Identity?.IsAuthenticated == true;
 
-    public AppUser? CurrentUser
+    /// <summary>
+    /// Taken from the Identity role claim, not the prototype record, because the
+    /// claim is what the authorisation policies check.
+    /// </summary>
+    public bool IsMd => Principal?.IsInRole(Roles.ManagingDirector) == true;
+
+    /// <summary>
+    /// The prototype record for the signed-in account. Fails rather than falling
+    /// back to another user - the prototype fell back to the MD, which would have
+    /// handed MD access to any account without a matching record.
+    /// </summary>
+    public AppUser User
     {
         get
         {
-            var id = Session?.GetInt32(Key);
-            return id is null ? null : Db.GetUser(id.Value);
+            var email = Principal?.Identity?.Name ?? "";
+            return Db.Users.FirstOrDefault(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase))
+                ?? throw new InvalidOperationException("The signed-in account has no matching user record.");
         }
     }
-
-    /// <summary>Falls back to the MD so a deep link never renders a broken page.</summary>
-    public AppUser User => CurrentUser ?? Db.Users.First();
-
-    public bool IsMd => User.Role == UserRole.ManagingDirector;
-
-    public void SignIn(int userId) => Session?.SetInt32(Key, userId);
-
-    public void SignOut() => Session?.Remove(Key);
-
-    /// <summary>Demo-only: flip role without going back through the login screen.</summary>
-    public void SwitchTo(int userId) => SignIn(userId);
 }
