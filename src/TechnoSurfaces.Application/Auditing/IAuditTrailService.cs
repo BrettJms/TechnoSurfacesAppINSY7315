@@ -12,6 +12,8 @@ public interface IAuditTrailService
     /// </summary>
     Task<IReadOnlyList<AuditRow>> ForQuoteAsync(int quoteId, CancellationToken ct = default);
 
+    Task<IReadOnlyList<AuditRow>> ForQuoteReferenceAsync(string reference, CancellationToken ct = default);
+
     Task<IReadOnlyList<string>> EntityNamesAsync(CancellationToken ct = default);
 
     Task<IReadOnlyList<AuditUserOption>> UsersAsync(CancellationToken ct = default);

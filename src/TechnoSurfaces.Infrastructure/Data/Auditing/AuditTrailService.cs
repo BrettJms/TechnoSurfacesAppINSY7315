@@ -91,6 +91,20 @@ public sealed class AuditTrailService : IAuditTrailService
         return await ToRowsAsync(entries, ct);
     }
 
+    public async Task<IReadOnlyList<AuditRow>> ForQuoteReferenceAsync(string reference, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(reference))
+            return [];
+
+        var quoteId = await _db.Quotes.AsNoTracking()
+            .Where(q => q.Reference == reference)
+            .Select(q => (int?)q.Id)
+            .SingleOrDefaultAsync(ct);
+
+        // An unknown reference has no recorded history, rather than someone else's.
+        return quoteId is { } id ? await ForQuoteAsync(id, ct) : [];
+    }
+
     public async Task<IReadOnlyList<string>> EntityNamesAsync(CancellationToken ct = default) =>
         await _db.AuditEntries.AsNoTracking()
             .Select(a => a.EntityName)

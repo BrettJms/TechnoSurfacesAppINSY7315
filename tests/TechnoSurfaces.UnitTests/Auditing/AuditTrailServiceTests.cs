@@ -137,4 +137,25 @@ public sealed class AuditTrailServiceTests : IAsyncLifetime
         Assert.Equal("Managing Director", rows[0].UserName);   // the estimator sees who changed it
         Assert.DoesNotContain(rows, r => r.EntityName == nameof(Quote) && r.EntityKey == other.Id.ToString());
     }
+
+    [Fact]
+    public async Task A_quotes_history_is_found_by_its_reference_and_an_unknown_reference_has_none()
+    {
+        var customer = new Customer { Name = "Reference Customer" };
+        _db.Customers.Add(customer);
+        await _db.SaveChangesAsync();
+
+        var contact = new Contact { CustomerId = customer.Id, FullName = "Reference Contact" };
+        _db.Contacts.Add(contact);
+        await _db.SaveChangesAsync();
+
+        var quote = new Quote("TS-REF-1", customer.Id, contact.Id, EstimatorId, new DateOnly(2026, 10, 1));
+        _db.Quotes.Add(quote);
+        await _db.SaveChangesAsync();
+
+        await AddAsync(nameof(Quote), quote.Id.ToString(), "Status", "Draft", "PendingApproval", EstimatorId, Noon);
+
+        Assert.Single(await _service.ForQuoteReferenceAsync("TS-REF-1"));
+        Assert.Empty(await _service.ForQuoteReferenceAsync("TS-DOES-NOT-EXIST"));
+    }
 }
