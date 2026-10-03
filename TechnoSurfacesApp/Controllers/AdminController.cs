@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using TechnoSurfacesApp.Identity;
 using System.Security.Claims;
 using TechnoSurfacesApp.Services;
+using System.Globalization;
+using TechnoSurfaces.Application.Auditing;
 
 namespace TechnoSurfacesApp.Controllers;
 
@@ -18,9 +20,13 @@ namespace TechnoSurfacesApp.Controllers;
 public class AdminController : AppController
 {
     private readonly IUserAdminService _users;
+    private readonly IAuditTrailService _audit;
 
-    public AdminController(DemoSession session, IUserAdminService users) : base(session)
-        => _users = users;
+    public AdminController(DemoSession session, IUserAdminService users, IAuditTrailService audit) : base(session)
+    {
+        _users = users;
+        _audit = audit;
+    }
 
     // ======================================================================
     //  Rate card
@@ -121,31 +127,23 @@ public class AdminController : AppController
     // ======================================================================
 
     [Authorize(Policy = Policies.CanViewAuditTrail)]
-    public IActionResult Audit(string? type, string? user, string? priceOnly)
+    public async Task<IActionResult> Audit(string? user, string? type, DateOnly? from, DateOnly? to, bool priceOnly, CancellationToken ct)
     {
-        var list = Db.Audit.AsEnumerable();
-
-        if (!string.IsNullOrEmpty(type))
-            list = list.Where(a => a.EntityType == type);
-
-        if (!string.IsNullOrEmpty(user))
-            list = list.Where(a => a.UserName == user);
-
-        if (priceOnly == "1")
-            list = list.Where(a => a.IsPriceChange);
-
         ViewData["Title"] = "Audit trail";
         ViewData["Page"] = "audit";
         ViewData["Crumb"] = "Administration";
 
+        var filter = new AuditFilter(user, type, from, to, priceOnly);
+        var page = await _audit.SearchAsync(filter, ct);
+
         return View(new AuditVm
         {
-            Entries = list.OrderByDescending(a => a.When).ToList(),
-            Type = type,
-            User = user,
-            PriceOnly = priceOnly == "1",
-            EntityTypes = Db.Audit.Select(a => a.EntityType).Distinct().OrderBy(t => t).ToList(),
-            Users = Db.Audit.Select(a => a.UserName).Distinct().OrderBy(u => u).ToList()
+            Filter = filter,
+            Entries = page.Rows,
+            TotalMatching = page.TotalMatching,
+            Truncated = page.Truncated,
+            EntityTypes = await _audit.EntityNamesAsync(ct),
+            Users = await _audit.UsersAsync(ct)
         });
     }
 }
@@ -188,14 +186,15 @@ public class TermsVm
 
 public class AuditVm
 {
-    public List<AuditEntry> Entries { get; set; } = new();
-    public string? Type { get; set; }
-    public string? User { get; set; }
-    public bool PriceOnly { get; set; }
-    public List<string> EntityTypes { get; set; } = new();
-    public List<string> Users { get; set; } = new();
+    public AuditFilter Filter { get; init; } = new();
+    public IReadOnlyList<AuditRow> Entries { get; init; } = [];
+    public int TotalMatching { get; init; }
+    public bool Truncated { get; init; }
+    public IReadOnlyList<string> EntityTypes { get; init; } = [];
+    public IReadOnlyList<AuditUserOption> Users { get; init; } = [];
 
-    public bool AnyFilter => !string.IsNullOrEmpty(Type) || !string.IsNullOrEmpty(User) || PriceOnly;
-
+    public bool AnyFilter => !Filter.IsEmpty;
     public int PriceChangeCount => Entries.Count(e => e.IsPriceChange);
+    public string? FromValue => Filter.From?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    public string? ToValue => Filter.To?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 }
