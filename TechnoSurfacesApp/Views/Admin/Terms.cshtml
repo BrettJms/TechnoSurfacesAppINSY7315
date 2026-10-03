@@ -117,7 +117,7 @@
                         @if (Model.CanEdit)
                         {
                             <form asp-controller="Catalogue" asp-action="AddTerm" method="post" style="display:flex;gap:8px;margin-top:4px">
-                                <input type="hidden" name="Section" value="@section" />
+                                <input type="hidden" name="Section" value="@(section)" />
                                 <input class="input input-sm" name="Text" maxlength="500" required
                                        placeholder="Add a line to @SectionName(section)"
                                        aria-label="New line for @SectionName(section)" />
