@@ -5,6 +5,8 @@ using TechnoSurfaces.Services;
 using static System.Collections.Specialized.BitVector32;
 using Microsoft.AspNetCore.Authorization;
 using TechnoSurfacesApp.Identity;
+using System.Security.Claims;
+using TechnoSurfacesApp.Services;
 
 namespace TechnoSurfacesApp.Controllers;
 
@@ -15,7 +17,10 @@ namespace TechnoSurfacesApp.Controllers;
 /// </summary>
 public class AdminController : AppController
 {
-    public AdminController(DemoSession session) : base(session) { }
+    private readonly IUserAdminService _users;
+
+    public AdminController(DemoSession session, IUserAdminService users) : base(session)
+        => _users = users;
 
     // ======================================================================
     //  Rate card
@@ -49,7 +54,7 @@ public class AdminController : AppController
 
 
     [Authorize(Policy = Policies.CanManageUsers)]
-    public IActionResult Users()
+    public async Task<IActionResult> Users()
     {
         ViewData["Title"] = "Users";
         ViewData["Page"] = "users";
@@ -57,10 +62,45 @@ public class AdminController : AppController
 
         return View(new UsersVm
         {
-            Users = Db.Users.OrderByDescending(u => u.IsActive).ThenBy(u => u.FullName).ToList(),
-            CanManage = Session.IsMd,
-            Me = Session.User
+            Users = await _users.ListAsync(),
+            CanManage = true,
+            MyId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? ""
         });
+    }
+
+    [HttpPost]
+    [Authorize(Policy = Policies.CanManageUsers)]
+    public async Task<IActionResult> CreateUser(CreateUserForm form) =>
+        UsersOutcome(ModelState.IsValid
+                ? await _users.CreateAsync(form.FullName, form.Email, form.Role)
+                : UserAdminResult.Fail("Enter a name, a valid email address and a role."),
+            $"Account created for {form.Email.Trim()}.");
+
+    [HttpPost]
+    [Authorize(Policy = Policies.CanManageUsers)]
+    public async Task<IActionResult> SetUserActive(string userId, bool active) =>
+        UsersOutcome(await _users.SetActiveAsync(userId, active),
+            active ? "Account reactivated." : "Account deactivated. Any open session ends within a minute.");
+
+    [HttpPost]
+    [Authorize(Policy = Policies.CanManageUsers)]
+    public async Task<IActionResult> ReissuePassword(string userId) =>
+        UsersOutcome(await _users.ReissuePasswordAsync(userId), "New temporary password issued.");
+
+    private IActionResult UsersOutcome(UserAdminResult result, string success)
+    {
+        if (!result.Succeeded)
+        {
+            TempData["UserError"] = result.Error;
+        }
+        else
+        {
+            TempData["UserMessage"] = success;
+            if (result.TemporaryPassword is not null)
+                TempData["TemporaryPassword"] = result.TemporaryPassword;
+        }
+
+        return RedirectToAction(nameof(Users));
     }
 
     // ======================================================================
@@ -132,9 +172,9 @@ public class RatesVm
 
 public class UsersVm
 {
-    public List<AppUser> Users { get; set; } = new();
+    public IReadOnlyList<UserRow> Users { get; set; } = Array.Empty<UserRow>();
     public bool CanManage { get; set; }
-    public AppUser Me { get; set; } = null!;
+    public string MyId { get; set; } = "";
 
     public int ActiveCount => Users.Count(u => u.IsActive);
     public int MdCount => Users.Count(u => u.Role == UserRole.ManagingDirector);
