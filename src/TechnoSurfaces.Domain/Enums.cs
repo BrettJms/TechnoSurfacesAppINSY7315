@@ -108,5 +108,11 @@ public enum TermSection
     TermsAndConditions,
     Disclaimers,
     Warranties,
-    PaymentTerms
+    PaymentTerms,
+
+    /// <summary>
+    /// Not seeded: the repository is public and the client's banking details fall
+    /// under the non-disclosure agreement. Entered by the Managing Director.
+    /// </summary>
+    BankDetails
 }
